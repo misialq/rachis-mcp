@@ -24,17 +24,20 @@ jobs:
         run: |
           docker run --rm -v ${{ github.workspace }}:/mnt quay.io/qiime2/moshpit:2026.1 \
             python /mnt/.github/scripts/introspect_plugins.py > moshpit.json
+          docker rmi quay.io/qiime2/moshpit:2026.1
       
       - name: Run Amplicon Introspection
         run: |
           docker run --rm -v ${{ github.workspace }}:/mnt quay.io/qiime2/amplicon:2026.1 \
             python /mnt/.github/scripts/introspect_plugins.py > amplicon.json
+          docker rmi quay.io/qiime2/amplicon:2026.1
             
       - name: Run Pathogenome Introspection
         continue-on-error: true
         run: |
           docker run --rm -v ${{ github.workspace }}:/mnt quay.io/qiime2/pathogenome:2026.1 \
             python /mnt/.github/scripts/introspect_plugins.py > pathogenome.json
+          docker rmi quay.io/qiime2/pathogenome:2026.1
 
       - name: Merge Schemas
         run: |
