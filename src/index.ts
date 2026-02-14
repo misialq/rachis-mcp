@@ -78,6 +78,17 @@ export class RachisMCP extends McpAgent {
                 return { content: [{ type: "text", text: JSON.stringify(compatible, null, 2) }] };
             }
         );
+
+        // Tool: Find consumers for a set of artifacts
+        this.server.tool(
+            "find_consumers",
+            { types: z.array(z.string()).describe("List of artifact types to be consumed") },
+            async ({ types }) => {
+                const consumers = graph.findConsumers(types);
+                const consumerStrings = consumers.map(c => `${c.plugin}:${c.action}`);
+                return { content: [{ type: "text", text: JSON.stringify(consumerStrings, null, 2) }] };
+            }
+        );
     }
 }
 

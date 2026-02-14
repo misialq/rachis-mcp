@@ -57,8 +57,61 @@ export class KnowledgeGraph {
         return actions;
     }
     
-    // --- Compatibility Logic ---
+    findConsumers(availableTypes: string[]) {
+        const consumers: { plugin: string, action: string }[] = [];
+        
+        for (const { plugin, action, details } of this.getAllActions()) {
+            if (!details.inputs) continue;
+            
+            const actionInputs = Object.values(details.inputs);
+            // Track usage count for each input
+            const inputUsage = new Array(actionInputs.length).fill(0);
+            
+            let allMatched = true;
 
+            for (const availType of availableTypes) {
+                let matchedObj = false;
+                
+                for (let i = 0; i < actionInputs.length; i++) {
+                    const inputDef = actionInputs[i] as any;
+                    
+                    // If it's not a List/Collection, it can only be used once
+                    // We assume any type starting with "List" or "Collection" is variadic
+                    const isVariadic = inputDef.type.some((t: string) => t.startsWith('List') || t.startsWith('Collection'));
+                    
+                    if (!isVariadic && inputUsage[i] > 0) continue;
+                    
+                    let typeCompatible = false;
+                     if (inputDef.type) {
+                         for (const reqType of inputDef.type) {
+                            if (this.checkCompatibility(availType, reqType)) {
+                                typeCompatible = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (typeCompatible) {
+                        inputUsage[i]++;
+                        matchedObj = true;
+                        break;
+                    }
+                }
+
+                if (!matchedObj) {
+                    allMatched = false;
+                    break;
+                }
+            }
+
+            if (allMatched && availableTypes.length > 0) {
+                consumers.push({ plugin, action });
+            }
+        }
+        return consumers;
+    }
+
+    // --- Compatibility Logic ---
     // Ported from Python: check_compatibility
     checkCompatibility(availType: string, reqType: string): boolean {
         // IMPLICIT LIFT: T can satisfy List[T]
