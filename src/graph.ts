@@ -220,4 +220,99 @@ export class KnowledgeGraph {
 
         return true;
     }
+
+    findWorkflow(startType: string, endType: string, maxDepth: number = 5): { plugin: string, action: string, output_type: string }[] | null {
+        const allActions = this.getAllActions();
+
+        // Helper: recursive resolver with Iterative Deepening
+        const resolve = (targetType: string, availableTypes: Set<string>, currentDepth: number, limit: number, stack: Set<string>): { plugin: string, action: string, output_type: string }[] | null => {
+
+            // 1. Check if we already have the type
+            for (const avail of availableTypes) {
+                if (this.checkCompatibility(avail, targetType)) {
+                    return []; // No actions needed, we have it.
+                }
+            }
+
+            if (currentDepth >= limit) return null;
+            if (stack.has(targetType)) return null; // Cycle detected
+
+            stack.add(targetType);
+
+            // 2. Find all actions that produce a compatible type
+            const candidates = [];
+            for (const act of allActions) {
+                if (!act.details.outputs) continue;
+                for (const outKey in act.details.outputs) {
+                    const outDef = act.details.outputs[outKey];
+                    // outDef.type is string[]
+                    for (const outType of (outDef.type as string[])) {
+                         if (this.checkCompatibility(outType, targetType)) {
+                             candidates.push({ ...act, producedType: outType });
+                         }
+                    }
+                }
+            }
+
+            // 3. Try to resolve inputs for each candidate
+            for (const candidate of candidates) {
+                const requiredInputs = candidate.details.inputs || {};
+                let currentPlan: { plugin: string, action: string, output_type: string }[] = [];
+                let possible = true;
+                const branchAvailable = new Set(availableTypes);
+
+                for (const inputKey in requiredInputs) {
+                    const inputDef = requiredInputs[inputKey];
+                    if (!inputDef.required) continue;
+
+                    const validTypes = inputDef.type as string[];
+                    let inputResolved = false;
+                    let bestInputSubPlan: typeof currentPlan | null = null;
+
+                    for (const reqInputType of validTypes) {
+                        const subPlan = resolve(reqInputType, branchAvailable, currentDepth + 1, limit, new Set(stack));
+                        if (subPlan !== null) {
+                            if (bestInputSubPlan === null || subPlan.length < bestInputSubPlan.length) {
+                                bestInputSubPlan = subPlan;
+                            }
+                        }
+                    }
+
+                    if (bestInputSubPlan) {
+                        for (const step of bestInputSubPlan) {
+                             currentPlan.push(step);
+                             branchAvailable.add(step.output_type);
+                        }
+                        inputResolved = true;
+                    }
+
+                    if (!inputResolved) {
+                        possible = false;
+                        break;
+                    }
+                }
+
+                if (possible) {
+                    currentPlan.push({
+                        plugin: candidate.plugin,
+                        action: candidate.action,
+                        output_type: candidate.producedType
+                    });
+                    // With Iterative Deepening, the first found at this depth limit is optimal for this depth.
+                    return currentPlan;
+                }
+            }
+
+            stack.delete(targetType);
+            return null;
+        };
+
+        // Iterative Deepening
+        for (let limit = 1; limit <= maxDepth; limit++) {
+            const result = resolve(endType, new Set([startType]), 0, limit, new Set());
+            if (result) return result;
+        }
+
+        return null;
+    }
 }

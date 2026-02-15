@@ -112,6 +112,25 @@ export class RachisMCP extends McpAgent {
                 return { content: [{ type: "text", text: JSON.stringify(producerStrings, null, 2) }] };
             }
         );
+
+        // Tool: Find workflow between two semantic types
+        this.server.tool(
+            "find_workflow",
+            {
+                start_type: z.string().describe("The starting semantic type"),
+                end_type: z.string().describe("The target semantic type"),
+                max_depth: z.number().optional().default(5).describe("Maximum recursion depth (default: 5)")
+            },
+            async ({ start_type, end_type, max_depth }) => {
+                const workflow = graph.findWorkflow(start_type, end_type, max_depth);
+
+                if (!workflow) {
+                    return { content: [{ type: "text", text: JSON.stringify({ error: `No workflow found from '${start_type}' to '${end_type}' within depth ${max_depth}.` }) }] };
+                }
+
+                return { content: [{ type: "text", text: JSON.stringify(workflow, null, 2) }] };
+            }
+        );
     }
 }
 
