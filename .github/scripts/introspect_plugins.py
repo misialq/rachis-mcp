@@ -16,7 +16,8 @@ except ImportError as e:
 # Fix for Numba caching issue in some environments
 os.environ["NUMBA_CACHE_DIR"] = tempfile.gettempdir()
 
- 
+pm = qiime2.sdk.PluginManager()
+
 data = {}
 
 for name, plugin in pm.plugins.items():
