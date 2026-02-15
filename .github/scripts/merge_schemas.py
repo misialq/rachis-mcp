@@ -13,7 +13,8 @@ def merge_schemas(distribution_files, output_file):
     """
     final_schema = {
         "plugins": {},
-        "distributions": {}
+        "distributions": {},
+        "types": {}
     }
     
     for dist_name, filepath in distribution_files.items():
@@ -44,7 +45,14 @@ def merge_schemas(distribution_files, output_file):
                             
                             # precise merge for actions to avoid overwriting unrelated ones
                             # We update, but if same action exists we overwrite (assuming latest version)
+                            # precise merge for actions to avoid overwriting unrelated ones
+                            # We update, but if same action exists we overwrite (assuming latest version)
                             target_plugin['actions'].update(plugin_content['actions'])
+                            
+                        # Merge semantic types into top-level registry
+                        if 'types' in plugin_content:
+                             # 'types' is { TypeName: Description }
+                             final_schema["types"].update(plugin_content['types'])
                         
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON from {filepath}: {e}", file=sys.stderr)

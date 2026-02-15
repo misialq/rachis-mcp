@@ -16,7 +16,7 @@ except ImportError as e:
 # Fix for Numba caching issue in some environments
 os.environ["NUMBA_CACHE_DIR"] = tempfile.gettempdir()
 
-pm = qiime2.sdk.PluginManager()
+ 
 data = {}
 
 for name, plugin in pm.plugins.items():
@@ -97,6 +97,30 @@ for name, plugin in pm.plugins.items():
             # Skip actions that fail reflection
             continue
             
+    # Extract Semantic Types
+    types = {}
+    if hasattr(plugin, 'types'):
+        for type_name, type_record in plugin.types.items():
+            # type_record is likely the SemanticType class or similar
+            # User wants description. 
+            # In QIIME 2, types are registered objects. 
+            # We need to see if we can get a description.
+            # If not, we just list it.
+            
+            description = ""
+            if hasattr(type_record, 'description'):
+                description = type_record.description
+            elif hasattr(type_record, '__doc__') and type_record.__doc__:
+                 description = type_record.__doc__
+            
+            # Clean up docstrings
+            if description:
+                description = description.strip()
+
+            types[str(type_name)] = description
+
+    plugin_data['types'] = types
+    
     data[name] = plugin_data
 
 print(json.dumps(data, default=str))
