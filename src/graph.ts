@@ -7,6 +7,22 @@ import { isTypeCompatible } from './semantic-type.js';
 // Actually, for BFS, iterating over all actions to find applicable ones is O(Total_Actions).
 // Efficient enough for < 1000 actions.
 
+export interface WorkflowStep {
+    action_id: string;
+    plugin: string;
+    action: string;
+    output_type: string;
+}
+
+export interface MultiWorkflowPlan {
+    steps: WorkflowStep[];
+    achieved_targets: string[];
+    missing_inputs: string[];
+    assumptions: string[];
+    warnings: string[];
+    available_types: string[];
+}
+
 export class KnowledgeGraph {
     private schema: Schema;
 
@@ -60,6 +76,36 @@ export class KnowledgeGraph {
     private matchesInputType(availableType: string, inputDef: { type?: string[] }): boolean {
         if (!inputDef.type) return false;
         return inputDef.type.some((requiredType: string) => this.checkCompatibility(availableType, requiredType));
+    }
+
+    private hasCompatibleType(availableTypes: Set<string>, requiredType: string): boolean {
+        for (const availableType of availableTypes) {
+            if (this.checkCompatibility(availableType, requiredType)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private addAllActionOutputs(availableTypes: Set<string>, step: WorkflowStep): void {
+        const actionDetails = this.getAction(step.plugin, step.action);
+        if (!actionDetails?.outputs) {
+            availableTypes.add(step.output_type);
+            return;
+        }
+
+        let addedAny = false;
+        for (const outputDef of Object.values(actionDetails.outputs) as Array<{ type?: string[] }>) {
+            if (!outputDef.type) continue;
+            for (const outputType of outputDef.type) {
+                availableTypes.add(outputType);
+                addedAny = true;
+            }
+        }
+
+        if (!addedAny) {
+            availableTypes.add(step.output_type);
+        }
     }
 
     findConsumers(availableTypes: string[], matchMode: 'required_inputs' | 'strict_consumption' = 'required_inputs') {
@@ -156,17 +202,15 @@ export class KnowledgeGraph {
         return isTypeCompatible(availType, reqType);
     }
 
-    findWorkflow(startType: string, endType: string, maxDepth: number = 5): { action_id: string, plugin: string, action: string, output_type: string }[] | null {
+    private findWorkflowFromAvailableTypes(startTypes: Set<string>, endType: string, maxDepth: number = 5): WorkflowStep[] | null {
         const allActions = this.getAllActions();
 
         // Helper: recursive resolver with Iterative Deepening
-        const resolve = (targetType: string, availableTypes: Set<string>, currentDepth: number, limit: number, stack: Set<string>): { action_id: string, plugin: string, action: string, output_type: string }[] | null => {
+        const resolve = (targetType: string, availableTypes: Set<string>, currentDepth: number, limit: number, stack: Set<string>): WorkflowStep[] | null => {
 
             // 1. Check if we already have the type
-            for (const avail of availableTypes) {
-                if (this.checkCompatibility(avail, targetType)) {
-                    return []; // No actions needed, we have it.
-                }
+            if (this.hasCompatibleType(availableTypes, targetType)) {
+                return []; // No actions needed, we have it.
             }
 
             if (currentDepth >= limit) return null;
@@ -192,7 +236,7 @@ export class KnowledgeGraph {
             // 3. Try to resolve inputs for each candidate
             for (const candidate of candidates) {
                 const requiredInputs = candidate.details.inputs || {};
-                let currentPlan: { action_id: string, plugin: string, action: string, output_type: string }[] = [];
+                let currentPlan: WorkflowStep[] = [];
                 let possible = true;
                 const branchAvailable = new Set(availableTypes);
 
@@ -216,7 +260,7 @@ export class KnowledgeGraph {
                     if (bestInputSubPlan) {
                         for (const step of bestInputSubPlan) {
                              currentPlan.push(step);
-                             branchAvailable.add(step.output_type);
+                             this.addAllActionOutputs(branchAvailable, step);
                         }
                         inputResolved = true;
                     }
@@ -245,10 +289,81 @@ export class KnowledgeGraph {
 
         // Iterative Deepening
         for (let limit = 1; limit <= maxDepth; limit++) {
-            const result = resolve(endType, new Set([startType]), 0, limit, new Set());
+            const result = resolve(endType, new Set(startTypes), 0, limit, new Set());
             if (result) return result;
         }
 
         return null;
+    }
+
+    findWorkflow(startType: string, endType: string, maxDepth: number = 5): WorkflowStep[] | null {
+        return this.findWorkflowFromAvailableTypes(new Set([startType]), endType, maxDepth);
+    }
+
+    planWorkflowMulti(availableTypes: string[], targetTypes: string[], maxDepth: number = 5): MultiWorkflowPlan {
+        const cleanAvailableTypes = Array.from(
+            new Set(availableTypes.map((value) => value.trim()).filter((value) => value.length > 0))
+        );
+        const cleanTargetTypes = Array.from(
+            new Set(targetTypes.map((value) => value.trim()).filter((value) => value.length > 0))
+        );
+
+        const availableSet = new Set(cleanAvailableTypes);
+        const steps: WorkflowStep[] = [];
+        const seenActionIds = new Set<string>();
+        const achievedTargets: string[] = [];
+        const missingInputs: string[] = [];
+        const warnings: string[] = [];
+
+        const assumptions = [
+            "Compatibility checks use semantic type matching and implicit List lift (T satisfies List[T]).",
+            "Each target is planned independently and merged into a combined execution plan.",
+        ];
+
+        if (cleanTargetTypes.length === 0) {
+            warnings.push("No target_types were provided.");
+        }
+
+        for (const targetType of cleanTargetTypes) {
+            if (this.hasCompatibleType(availableSet, targetType)) {
+                achievedTargets.push(targetType);
+                continue;
+            }
+
+            const plan = this.findWorkflowFromAvailableTypes(new Set(availableSet), targetType, maxDepth);
+            if (!plan || plan.length === 0) {
+                missingInputs.push(targetType);
+                warnings.push(`No workflow found for target '${targetType}' within depth ${maxDepth}.`);
+                continue;
+            }
+
+            for (const step of plan) {
+                if (!seenActionIds.has(step.action_id)) {
+                    seenActionIds.add(step.action_id);
+                    steps.push(step);
+                }
+                this.addAllActionOutputs(availableSet, step);
+            }
+
+            if (this.hasCompatibleType(availableSet, targetType)) {
+                achievedTargets.push(targetType);
+            } else {
+                missingInputs.push(targetType);
+                warnings.push(`Workflow for target '${targetType}' did not resolve all required intermediate inputs.`);
+            }
+        }
+
+        if (missingInputs.length > 0) {
+            warnings.push("Plan is partial. Some target types could not be satisfied from the provided available_types.");
+        }
+
+        return {
+            steps,
+            achieved_targets: achievedTargets,
+            missing_inputs: missingInputs,
+            assumptions,
+            warnings,
+            available_types: Array.from(availableSet).sort((a, b) => a.localeCompare(b)),
+        };
     }
 }

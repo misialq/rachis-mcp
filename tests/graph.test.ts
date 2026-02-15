@@ -28,6 +28,16 @@ const schema: Schema = {
                         target: { type: ['TypeTarget'] },
                     },
                 },
+                derive_b: {
+                    description: 'Derive TypeB from TypeA.',
+                    inputs: {
+                        source: { type: ['TypeA'], required: true },
+                    },
+                    parameters: {},
+                    outputs: {
+                        derived: { type: ['TypeB'] },
+                    },
+                },
                 property_consumer: {
                     description: 'Consume index data with contigs property.',
                     inputs: {
@@ -95,3 +105,31 @@ test('findWorkflow step includes backward-compatible fields and action_id', () =
     assert.equal(workflow![0].output_type, 'TypeTarget');
 });
 
+test('planWorkflowMulti builds a combined plan for multiple targets', () => {
+    const graph = new KnowledgeGraph(schema);
+    const plan = graph.planWorkflowMulti(['TypeA'], ['TypeTarget', 'TypeC'], 4);
+
+    assert.deepEqual(plan.missing_inputs, []);
+    assert.equal(plan.achieved_targets.includes('TypeTarget'), true);
+    assert.equal(plan.achieved_targets.includes('TypeC'), true);
+    assert.equal(plan.steps.some((step) => step.action_id === 'planner:convert'), true);
+    assert.equal(plan.steps.some((step) => step.action_id === 'planner:derive_b'), true);
+    assert.equal(plan.steps.some((step) => step.action_id === 'planner:combine'), true);
+});
+
+test('planWorkflowMulti returns partial results with missing_inputs for unsatisfied targets', () => {
+    const graph = new KnowledgeGraph(schema);
+    const plan = graph.planWorkflowMulti(['TypeA'], ['TypeTarget', 'TypeUnknown'], 3);
+
+    assert.equal(plan.achieved_targets.includes('TypeTarget'), true);
+    assert.equal(plan.missing_inputs.includes('TypeUnknown'), true);
+    assert.equal(plan.warnings.length > 0, true);
+});
+
+test('planWorkflowMulti deduplicates shared actions across targets', () => {
+    const graph = new KnowledgeGraph(schema);
+    const plan = graph.planWorkflowMulti(['TypeA'], ['TypeB', 'TypeC'], 4);
+
+    const deriveBCount = plan.steps.filter((step) => step.action_id === 'planner:derive_b').length;
+    assert.equal(deriveBCount, 1);
+});

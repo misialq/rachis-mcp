@@ -138,6 +138,20 @@ export class RachisMCP extends McpAgent {
                 return { content: [{ type: "text", text: JSON.stringify(workflow, null, 2) }] };
             }
         );
+
+        // Tool: Plan workflow for multiple starting and target types
+        this.server.tool(
+            "plan_workflow_multi",
+            {
+                available_types: z.array(z.string()).describe("List of currently available artifact types"),
+                target_types: z.array(z.string()).describe("List of target artifact types to produce"),
+                max_depth: z.number().optional().default(5).describe("Maximum recursion depth (default: 5)")
+            },
+            async ({ available_types, target_types, max_depth }) => {
+                const plan = graph.planWorkflowMulti(available_types, target_types, max_depth);
+                return { content: [{ type: "text", text: JSON.stringify(plan, null, 2) }] };
+            }
+        );
     }
 }
 
