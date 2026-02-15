@@ -111,7 +111,7 @@ for name, plugin in pm.plugins.items():
             if hasattr(type_record, 'description'):
                 description = type_record.description
             elif hasattr(type_record, '__doc__') and type_record.__doc__:
-                 description = type_record.__doc__
+                description = type_record.__doc__
             
             # Clean up docstrings
             if description:
