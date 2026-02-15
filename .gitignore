@@ -114,6 +114,7 @@ out
 
 .nuxt
 dist
+.tmp-tests/
 
 # Gatsby files
 

@@ -1,0 +1,19 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"noEmit": false,
+		"isolatedModules": false,
+		"outDir": ".tmp-tests",
+		"rootDir": ".",
+		"types": ["node"]
+	},
+	"include": [
+		"src/action-utils.ts",
+		"src/graph.ts",
+		"src/semantic-type.ts",
+		"src/types.ts",
+		"tests/**/*.ts"
+	]
+}

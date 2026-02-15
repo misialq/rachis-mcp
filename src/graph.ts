@@ -1,5 +1,5 @@
-
 import { Schema } from './types.js';
+import { isTypeCompatible } from './semantic-type.js';
 
 // Graph Representation
 // We will not build a full graph object like NetworkX but serve queries directly from the Schema
@@ -56,57 +56,47 @@ export class KnowledgeGraph {
         }
         return actions;
     }
-    
-    findConsumers(availableTypes: string[]) {
+
+    private matchesInputType(availableType: string, inputDef: { type?: string[] }): boolean {
+        if (!inputDef.type) return false;
+        return inputDef.type.some((requiredType: string) => this.checkCompatibility(availableType, requiredType));
+    }
+
+    findConsumers(availableTypes: string[], matchMode: 'required_inputs' | 'strict_consumption' = 'required_inputs') {
         const consumers: { plugin: string, action: string }[] = [];
-        
+        const cleanTypes = availableTypes.map((t) => t.trim()).filter((t) => t.length > 0);
+
+        if (cleanTypes.length === 0) {
+            return consumers;
+        }
+
         for (const { plugin, action, details } of this.getAllActions()) {
             if (!details.inputs) continue;
-            
-            const actionInputs = Object.values(details.inputs);
-            // Track usage count for each input
-            const inputUsage = new Array(actionInputs.length).fill(0);
-            
-            let allMatched = true;
 
-            for (const availType of availableTypes) {
-                let matchedObj = false;
-                
-                for (let i = 0; i < actionInputs.length; i++) {
-                    const inputDef = actionInputs[i] as any;
-                    
-                    // If it's not a List/Collection, it can only be used once
-                    // We assume any type starting with "List" or "Collection" is variadic
-                    const isVariadic = inputDef.type.some((t: string) => t.startsWith('List') || t.startsWith('Collection'));
-                    
-                    if (!isVariadic && inputUsage[i] > 0) continue;
-                    
-                    let typeCompatible = false;
-                     if (inputDef.type) {
-                         for (const reqType of inputDef.type) {
-                            if (this.checkCompatibility(availType, reqType)) {
-                                typeCompatible = true;
-                                break;
-                            }
-                        }
-                    }
+            const actionInputs = Object.values(details.inputs) as { type?: string[], required?: boolean }[];
+            if (actionInputs.length === 0) continue;
 
-                    if (typeCompatible) {
-                        inputUsage[i]++;
-                        matchedObj = true;
-                        break;
-                    }
-                }
+            const requiredInputs = actionInputs.filter((inputDef) => inputDef.required);
+            const requiredSatisfied = requiredInputs.every((inputDef) =>
+                cleanTypes.some((availType) => this.matchesInputType(availType, inputDef))
+            );
 
-                if (!matchedObj) {
-                    allMatched = false;
-                    break;
-                }
+            if (!requiredSatisfied) continue;
+
+            const anyProvidedTypeConsumed = cleanTypes.some((availType) =>
+                actionInputs.some((inputDef) => this.matchesInputType(availType, inputDef))
+            );
+
+            if (!anyProvidedTypeConsumed) continue;
+
+            if (matchMode === 'strict_consumption') {
+                const allProvidedTypesConsumed = cleanTypes.every((availType) =>
+                    actionInputs.some((inputDef) => this.matchesInputType(availType, inputDef))
+                );
+                if (!allProvidedTypesConsumed) continue;
             }
 
-            if (allMatched && availableTypes.length > 0) {
-                consumers.push({ plugin, action });
-            }
+            consumers.push({ plugin, action });
         }
         return consumers;
     }
@@ -163,69 +153,14 @@ export class KnowledgeGraph {
     // --- Compatibility Logic ---
     // Ported from Python: check_compatibility
     checkCompatibility(availType: string, reqType: string): boolean {
-        // IMPLICIT LIFT: T can satisfy List[T]
-        if (reqType.startsWith('List[') && !availType.startsWith('List[')) {
-             const innerReq = reqType.slice(5, -1);
-             return this.checkCompatibility(availType, innerReq);
-        }
-
-        // Helper to decompose a type string into { head, args, props }
-        // Handles 'Type[Args] % Properties(P)' and 'Type % Properties(P)'
-        const parseRobust = (t: string) => {
-            // 1. Extract Properties if present at the top level (suffix)
-            let props = new Set<string>();
-            let cleanType = t;
-            
-            // Hacky regex for top-level properties
-            const propMatch = t.match(/%\s*Properties\((.*)\)$/);
-            if (propMatch) {
-                const propsRaw = propMatch[1].split(',').map(p => p.trim().replace(/^['"]|['"]$/g, ''));
-                propsRaw.forEach(p => props.add(p));
-                cleanType = t.substring(0, propMatch.index).trim();
-            }
-
-            // 2. Extract Head and Args
-            const headMatch = cleanType.match(/^([a-zA-Z0-9_]+)(?:\[(.*)\])?$/);
-            if (!headMatch) {
-                return { head: cleanType, args: null, props };
-            }
-            return { head: headMatch[1], args: headMatch[2] || null, props };
-        };
-
-        const av = parseRobust(availType);
-        const req = parseRobust(reqType);
-
-        // 1. Check Head Equality (e.g. SampleData == SampleData)
-        if (av.head !== req.head) return false;
-
-        // 2. Check Properties (Req props must be subset of Avail props)
-        // Note: This only checks top-level properties. Nested properties are handled by recursion on args.
-        for (const p of req.props) {
-            if (!av.props.has(p)) return false;
-        }
-        
-        // 3. Check Arguments Recursively
-        if (req.args) {
-            if (!av.args) return false; // Req expects args, Avail has none -> fail
-            
-            // If args contain nested structure, we need to recurse.
-            // But args might be complex strings?
-            // For single generic 'SampleData[T]', args is 'T'.
-            // Recurse: checkCompatibility(av.args, req.args)
-            
-            // Handle cases where args might have embedded properties that look like different strings
-            // e.g. T % Props vs T
-            return this.checkCompatibility(av.args, req.args);
-        }
-
-        return true;
+        return isTypeCompatible(availType, reqType);
     }
 
-    findWorkflow(startType: string, endType: string, maxDepth: number = 5): { plugin: string, action: string, output_type: string }[] | null {
+    findWorkflow(startType: string, endType: string, maxDepth: number = 5): { action_id: string, plugin: string, action: string, output_type: string }[] | null {
         const allActions = this.getAllActions();
 
         // Helper: recursive resolver with Iterative Deepening
-        const resolve = (targetType: string, availableTypes: Set<string>, currentDepth: number, limit: number, stack: Set<string>): { plugin: string, action: string, output_type: string }[] | null => {
+        const resolve = (targetType: string, availableTypes: Set<string>, currentDepth: number, limit: number, stack: Set<string>): { action_id: string, plugin: string, action: string, output_type: string }[] | null => {
 
             // 1. Check if we already have the type
             for (const avail of availableTypes) {
@@ -257,7 +192,7 @@ export class KnowledgeGraph {
             // 3. Try to resolve inputs for each candidate
             for (const candidate of candidates) {
                 const requiredInputs = candidate.details.inputs || {};
-                let currentPlan: { plugin: string, action: string, output_type: string }[] = [];
+                let currentPlan: { action_id: string, plugin: string, action: string, output_type: string }[] = [];
                 let possible = true;
                 const branchAvailable = new Set(availableTypes);
 
@@ -294,6 +229,7 @@ export class KnowledgeGraph {
 
                 if (possible) {
                     currentPlan.push({
+                        action_id: `${candidate.plugin}:${candidate.action}`,
                         plugin: candidate.plugin,
                         action: candidate.action,
                         output_type: candidate.producedType

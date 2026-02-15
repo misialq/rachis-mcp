@@ -8,6 +8,8 @@
 		"format": "oxfmt --write .",
 		"lint:fix": "oxlint --fix",
 		"start": "wrangler dev",
+		"test": "npm run test:build && node --test .tmp-tests/tests/*.test.js",
+		"test:build": "rm -rf .tmp-tests && tsc -p tsconfig.test.json",
 		"cf-typegen": "wrangler types",
 		"type-check": "tsc --noEmit"
 	},

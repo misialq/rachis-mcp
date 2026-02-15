@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { McpAgent } from "agents/mcp";
 import { z } from "zod";
 import { KnowledgeGraph } from "./graph.js";
+import { normalizeActionIds, toActionId } from "./action-utils.js";
 import schema from "./schema.json";
 
 // Typed Schema Import
@@ -81,23 +82,29 @@ export class RachisMCP extends McpAgent {
                          
                          for (const t of types) {
                              if (graph.checkCompatibility(semantic_type, t)) {
-                                 compatible.push(`${plugin}:${action}`);
+                                 compatible.push(toActionId(plugin, action));
                                  break; 
                              }
                          }
                      }
                 }
-                return { content: [{ type: "text", text: JSON.stringify(compatible, null, 2) }] };
+                return { content: [{ type: "text", text: JSON.stringify(normalizeActionIds(compatible), null, 2) }] };
             }
         );
 
         // Tool: Find consumers for a set of artifacts
         this.server.tool(
             "find_consumers",
-            { types: z.array(z.string()).describe("List of artifact types to be consumed") },
-            async ({ types }) => {
-                const consumers = graph.findConsumers(types);
-                const consumerStrings = consumers.map(c => `${c.plugin}:${c.action}`);
+            {
+                types: z.array(z.string()).describe("List of artifact types to be consumed"),
+                match_mode: z.enum(["required_inputs", "strict_consumption"])
+                    .optional()
+                    .default("required_inputs")
+                    .describe("Consumer matching mode. Defaults to required_inputs."),
+            },
+            async ({ types, match_mode }) => {
+                const consumers = graph.findConsumers(types, match_mode);
+                const consumerStrings = normalizeActionIds(consumers.map((c) => toActionId(c.plugin, c.action)));
                 return { content: [{ type: "text", text: JSON.stringify(consumerStrings, null, 2) }] };
             }
         );
@@ -108,7 +115,7 @@ export class RachisMCP extends McpAgent {
             { types: z.array(z.string()).describe("List of artifact types to be produced") },
             async ({ types }) => {
                 const producers = graph.findProducers(types);
-                const producerStrings = producers.map(p => `${p.plugin}:${p.action}`);
+                const producerStrings = normalizeActionIds(producers.map((p) => toActionId(p.plugin, p.action)));
                 return { content: [{ type: "text", text: JSON.stringify(producerStrings, null, 2) }] };
             }
         );
