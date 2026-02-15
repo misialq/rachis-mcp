@@ -31,8 +31,8 @@
                     "inputs": {
                         "reads": {
                             "type": [
-                                "SampleData[SequencesWithQuality]",
-                                "SampleData[PairedEndSequencesWithQuality]"
+                                "SampleData[PairedEndSequencesWithQuality]",
+                                "SampleData[SequencesWithQuality]"
                             ],
                             "required": true
                         }
@@ -382,8 +382,8 @@
                     "inputs": {
                         "alignment_maps": {
                             "type": [
-                                "List[SampleData[AlignmentMap]]",
-                                "List[FeatureData[AlignmentMap]]"
+                                "List[FeatureData[AlignmentMap]]",
+                                "List[SampleData[AlignmentMap]]"
                             ],
                             "required": true
                         }
@@ -443,8 +443,8 @@
                     "inputs": {
                         "reads": {
                             "type": [
-                                "SampleData[SequencesWithQuality]",
-                                "SampleData[PairedEndSequencesWithQuality]"
+                                "SampleData[PairedEndSequencesWithQuality]",
+                                "SampleData[SequencesWithQuality]"
                             ],
                             "required": true
                         }
@@ -567,8 +567,8 @@
                         },
                         "reads": {
                             "type": [
-                                "SampleData[SequencesWithQuality]",
-                                "SampleData[PairedEndSequencesWithQuality]"
+                                "SampleData[PairedEndSequencesWithQuality]",
+                                "SampleData[SequencesWithQuality]"
                             ],
                             "required": false
                         },
@@ -800,8 +800,8 @@
                         },
                         "reads": {
                             "type": [
-                                "SampleData[SequencesWithQuality]",
-                                "SampleData[PairedEndSequencesWithQuality]"
+                                "SampleData[PairedEndSequencesWithQuality]",
+                                "SampleData[SequencesWithQuality]"
                             ],
                             "required": true
                         }
@@ -997,6 +997,9 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "QUASTResults": ""
             }
         },
         "composition": {
@@ -1215,8 +1218,8 @@
                     "inputs": {
                         "data": {
                             "type": [
-                                "FeatureData[DifferentialAbundance]",
-                                "FeatureData[ANCOMBC2Output]"
+                                "FeatureData[ANCOMBC2Output]",
+                                "FeatureData[DifferentialAbundance]"
                             ],
                             "required": true
                         }
@@ -1286,6 +1289,10 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "FeatureData[DifferentialAbundance]": "",
+                "FeatureData[ANCOMBC2Output]": ""
             }
         },
         "quality-filter": {
@@ -1339,6 +1346,9 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "QualityFilterStats": ""
             }
         },
         "sample-classifier": {
@@ -1348,10 +1358,10 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -1412,10 +1422,10 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -1477,10 +1487,10 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -1545,10 +1555,10 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -1613,10 +1623,10 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
@@ -1651,10 +1661,10 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
@@ -1684,13 +1694,13 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[Design]",
-                                "FeatureTable[Balance]",
-                                "FeatureTable[Composition]",
                                 "FeatureTable[PercentileNormalized]",
                                 "FeatureTable[RelativeFrequency]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[PresenceAbsence]"
+                                "FeatureTable[PresenceAbsence]",
+                                "FeatureTable[Balance]",
+                                "FeatureTable[Design]",
+                                "FeatureTable[Composition]"
                             ],
                             "required": true
                         }
@@ -1720,24 +1730,24 @@
                     "outputs": {
                         "training_table": {
                             "type": [
-                                "FeatureTable[Design]",
-                                "FeatureTable[Balance]",
-                                "FeatureTable[Composition]",
                                 "FeatureTable[PercentileNormalized]",
                                 "FeatureTable[RelativeFrequency]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[PresenceAbsence]"
+                                "FeatureTable[PresenceAbsence]",
+                                "FeatureTable[Balance]",
+                                "FeatureTable[Design]",
+                                "FeatureTable[Composition]"
                             ]
                         },
                         "test_table": {
                             "type": [
-                                "FeatureTable[Design]",
-                                "FeatureTable[Balance]",
-                                "FeatureTable[Composition]",
                                 "FeatureTable[PercentileNormalized]",
                                 "FeatureTable[RelativeFrequency]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[PresenceAbsence]"
+                                "FeatureTable[PresenceAbsence]",
+                                "FeatureTable[Balance]",
+                                "FeatureTable[Design]",
+                                "FeatureTable[Composition]"
                             ]
                         },
                         "training_targets": {
@@ -1851,10 +1861,10 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -2011,10 +2021,10 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -2102,10 +2112,10 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": false
                         }
@@ -2141,10 +2151,10 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
@@ -2214,6 +2224,16 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "SampleEstimator[Classifier]": "",
+                "SampleEstimator[Regressor]": "",
+                "SampleData[BooleanSeries]": "",
+                "SampleData[RegressorPredictions]": "",
+                "SampleData[ClassifierPredictions]": "",
+                "FeatureData[Importance]": "",
+                "SampleData[Probabilities]": "",
+                "SampleData[TrueTargets]": ""
             }
         },
         "emperor": {
@@ -2338,7 +2358,8 @@
                         }
                     }
                 }
-            }
+            },
+            "types": {}
         },
         "feature-classifier": {
             "actions": {
@@ -3045,6 +3066,10 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "BLASTDB": "",
+                "TaxonomicClassifier": ""
             }
         },
         "quality-control": {
@@ -3109,8 +3134,8 @@
                     "inputs": {
                         "demultiplexed_sequences": {
                             "type": [
-                                "SampleData[SequencesWithQuality]",
-                                "SampleData[PairedEndSequencesWithQuality]"
+                                "SampleData[PairedEndSequencesWithQuality]",
+                                "SampleData[SequencesWithQuality]"
                             ],
                             "required": true
                         },
@@ -3150,8 +3175,8 @@
                     "outputs": {
                         "filtered_sequences": {
                             "type": [
-                                "SampleData[SequencesWithQuality]",
-                                "SampleData[PairedEndSequencesWithQuality]"
+                                "SampleData[PairedEndSequencesWithQuality]",
+                                "SampleData[SequencesWithQuality]"
                             ]
                         }
                     }
@@ -3492,6 +3517,9 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "FeatureData[DecontamScore]": ""
             }
         },
         "rescript": {
@@ -3914,8 +3942,8 @@
                     "inputs": {
                         "rna_sequences": {
                             "type": [
-                                "FeatureData[RNASequence]",
-                                "FeatureData[AlignedRNASequence]"
+                                "FeatureData[AlignedRNASequence]",
+                                "FeatureData[RNASequence]"
                             ],
                             "required": true
                         }
@@ -3924,8 +3952,8 @@
                     "outputs": {
                         "dna_sequences": {
                             "type": [
-                                "FeatureData[AlignedSequence]",
-                                "FeatureData[Sequence]"
+                                "FeatureData[Sequence]",
+                                "FeatureData[AlignedSequence]"
                             ]
                         }
                     }
@@ -4205,8 +4233,8 @@
                     "inputs": {
                         "sequences": {
                             "type": [
-                                "FeatureData[AlignedSequence]",
-                                "FeatureData[Sequence]"
+                                "FeatureData[Sequence]",
+                                "FeatureData[AlignedSequence]"
                             ],
                             "required": true
                         }
@@ -4224,8 +4252,8 @@
                     "outputs": {
                         "sample_sequences": {
                             "type": [
-                                "FeatureData[AlignedSequence]",
-                                "FeatureData[Sequence]"
+                                "FeatureData[Sequence]",
+                                "FeatureData[AlignedSequence]"
                             ]
                         }
                     }
@@ -4756,6 +4784,10 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "FeatureData[SILVATaxonomy]": "",
+                "FeatureData[SILVATaxidMap]": ""
             }
         },
         "metadata": {
@@ -4852,6 +4884,9 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "SampleData[ArtificialGrouping]": ""
             }
         },
         "fastp": {
@@ -5049,6 +5084,9 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "FastpJSONReports": ""
             }
         },
         "annotate": {
@@ -5655,9 +5693,9 @@
                         "features": {
                             "type": [
                                 "SampleData[Contigs]",
+                                "FeatureData[Sequence]",
                                 "SampleData[MAGs]",
-                                "FeatureData[MAG]",
-                                "FeatureData[Sequence]"
+                                "FeatureData[MAG]"
                             ],
                             "required": true
                         }
@@ -5867,10 +5905,10 @@
                     "inputs": {
                         "seqs": {
                             "type": [
-                                "List[SampleData[SequencesWithQuality | PairedEndSequencesWithQuality | JoinedSequencesWithQuality]]",
                                 "List[FeatureData[MAG]]",
-                                "List[SampleData[MAGs]]",
-                                "List[SampleData[Contigs]]"
+                                "List[SampleData[SequencesWithQuality | PairedEndSequencesWithQuality | JoinedSequencesWithQuality]]",
+                                "List[SampleData[Contigs]]",
+                                "List[SampleData[MAGs]]"
                             ],
                             "required": true
                         },
@@ -5918,18 +5956,18 @@
                     "outputs": {
                         "reports": {
                             "type": [
-                                "SampleData[Kraken2Report % Properties('contigs')]",
                                 "SampleData[Kraken2Report % Properties('mags')]",
+                                "SampleData[Kraken2Report % Properties('reads')]",
                                 "FeatureData[Kraken2Report % Properties('mags')]",
-                                "SampleData[Kraken2Report % Properties('reads')]"
+                                "SampleData[Kraken2Report % Properties('contigs')]"
                             ]
                         },
                         "outputs": {
                             "type": [
                                 "SampleData[Kraken2Output % Properties('mags')]",
-                                "SampleData[Kraken2Output % Properties('reads')]",
+                                "SampleData[Kraken2Output % Properties('contigs')]",
                                 "FeatureData[Kraken2Output % Properties('mags')]",
-                                "SampleData[Kraken2Output % Properties('contigs')]"
+                                "SampleData[Kraken2Output % Properties('reads')]"
                             ]
                         }
                     }
@@ -6010,8 +6048,8 @@
                     "inputs": {
                         "seqs": {
                             "type": [
-                                "SampleData[MAGs]",
                                 "SampleData[Contigs]",
+                                "SampleData[MAGs]",
                                 "FeatureData[MAG]"
                             ],
                             "required": true
@@ -6060,8 +6098,8 @@
                     "inputs": {
                         "seqs": {
                             "type": [
-                                "SampleData[MAGs]",
                                 "SampleData[Contigs]",
+                                "SampleData[MAGs]",
                                 "FeatureData[MAG]"
                             ],
                             "required": true
@@ -6258,9 +6296,9 @@
                     "inputs": {
                         "seqs": {
                             "type": [
+                                "SampleData[PairedEndSequencesWithQuality]",
                                 "SampleData[Contigs]",
                                 "SampleData[JoinedSequencesWithQuality]",
-                                "SampleData[PairedEndSequencesWithQuality]",
                                 "SampleData[SequencesWithQuality]"
                             ],
                             "required": true
@@ -6410,17 +6448,17 @@
                     "inputs": {
                         "table1": {
                             "type": [
-                                "FeatureTable[Frequency]",
                                 "FeatureTable[PresenceAbsence]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[Frequency]"
                             ],
                             "required": true
                         },
                         "table2": {
                             "type": [
-                                "FeatureTable[Frequency]",
                                 "FeatureTable[PresenceAbsence]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[Frequency]"
                             ],
                             "required": true
                         }
@@ -6429,9 +6467,9 @@
                     "outputs": {
                         "result_table": {
                             "type": [
-                                "FeatureTable[Frequency]",
                                 "FeatureTable[PresenceAbsence]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[Frequency]"
                             ]
                         }
                     }
@@ -6441,27 +6479,27 @@
                     "inputs": {
                         "reports": {
                             "type": [
-                                "SampleData[Kraken2Report % Properties('contigs', 'mags')]",
-                                "SampleData[Kraken2Report % Properties('reads', 'mags')]",
+                                "SampleData[Kraken2Report % Properties('reads', 'contigs', 'mags')]",
                                 "SampleData[Kraken2Report % Properties('reads', 'contigs')]",
-                                "SampleData[Kraken2Report % Properties('contigs')]",
-                                "SampleData[Kraken2Report % Properties('mags')]",
-                                "FeatureData[Kraken2Report % Properties('mags')]",
+                                "SampleData[Kraken2Report % Properties('reads', 'mags')]",
                                 "SampleData[Kraken2Report % Properties('reads')]",
-                                "SampleData[Kraken2Report % Properties('reads', 'contigs', 'mags')]"
+                                "SampleData[Kraken2Report % Properties('mags')]",
+                                "SampleData[Kraken2Report % Properties('contigs', 'mags')]",
+                                "SampleData[Kraken2Report % Properties('contigs')]",
+                                "FeatureData[Kraken2Report % Properties('mags')]"
                             ],
                             "required": true
                         },
                         "outputs": {
                             "type": [
-                                "SampleData[Kraken2Output % Properties('reads', 'contigs')]",
-                                "SampleData[Kraken2Output % Properties('contigs', 'mags')]",
                                 "FeatureData[Kraken2Output % Properties('mags')]",
-                                "SampleData[Kraken2Output % Properties('mags')]",
-                                "SampleData[Kraken2Output % Properties('reads')]",
-                                "SampleData[Kraken2Output % Properties('reads', 'mags')]",
                                 "SampleData[Kraken2Output % Properties('reads', 'contigs', 'mags')]",
-                                "SampleData[Kraken2Output % Properties('contigs')]"
+                                "SampleData[Kraken2Output % Properties('contigs', 'mags')]",
+                                "SampleData[Kraken2Output % Properties('contigs')]",
+                                "SampleData[Kraken2Output % Properties('reads', 'contigs')]",
+                                "SampleData[Kraken2Output % Properties('reads', 'mags')]",
+                                "SampleData[Kraken2Output % Properties('mags')]",
+                                "SampleData[Kraken2Output % Properties('reads')]"
                             ],
                             "required": true
                         }
@@ -6491,30 +6529,35 @@
                     "outputs": {
                         "filtered_reports": {
                             "type": [
-                                "SampleData[Kraken2Report % Properties('contigs', 'mags')]",
-                                "SampleData[Kraken2Report % Properties('reads', 'mags')]",
+                                "SampleData[Kraken2Report % Properties('reads', 'contigs', 'mags')]",
                                 "SampleData[Kraken2Report % Properties('reads', 'contigs')]",
-                                "SampleData[Kraken2Report % Properties('contigs')]",
-                                "SampleData[Kraken2Report % Properties('mags')]",
-                                "FeatureData[Kraken2Report % Properties('mags')]",
+                                "SampleData[Kraken2Report % Properties('reads', 'mags')]",
                                 "SampleData[Kraken2Report % Properties('reads')]",
-                                "SampleData[Kraken2Report % Properties('reads', 'contigs', 'mags')]"
+                                "SampleData[Kraken2Report % Properties('mags')]",
+                                "SampleData[Kraken2Report % Properties('contigs', 'mags')]",
+                                "SampleData[Kraken2Report % Properties('contigs')]",
+                                "FeatureData[Kraken2Report % Properties('mags')]"
                             ]
                         },
                         "filtered_outputs": {
                             "type": [
-                                "SampleData[Kraken2Output % Properties('reads', 'contigs')]",
-                                "SampleData[Kraken2Output % Properties('contigs', 'mags')]",
                                 "FeatureData[Kraken2Output % Properties('mags')]",
-                                "SampleData[Kraken2Output % Properties('mags')]",
-                                "SampleData[Kraken2Output % Properties('reads')]",
-                                "SampleData[Kraken2Output % Properties('reads', 'mags')]",
                                 "SampleData[Kraken2Output % Properties('reads', 'contigs', 'mags')]",
-                                "SampleData[Kraken2Output % Properties('contigs')]"
+                                "SampleData[Kraken2Output % Properties('contigs', 'mags')]",
+                                "SampleData[Kraken2Output % Properties('contigs')]",
+                                "SampleData[Kraken2Output % Properties('reads', 'contigs')]",
+                                "SampleData[Kraken2Output % Properties('reads', 'mags')]",
+                                "SampleData[Kraken2Output % Properties('mags')]",
+                                "SampleData[Kraken2Output % Properties('reads')]"
                             ]
                         }
                     }
                 }
+            },
+            "types": {
+                "BUSCOResults": "",
+                "ReferenceDB[BUSCO]": "",
+                "EggnogHmmerIdmap": ""
             }
         },
         "vsearch": {
@@ -6622,8 +6665,8 @@
                         "sequences": {
                             "type": [
                                 "SampleData[JoinedSequencesWithQuality]",
-                                "SampleData[SequencesWithQuality]",
-                                "SampleData[Sequences]"
+                                "SampleData[Sequences]",
+                                "SampleData[SequencesWithQuality]"
                             ],
                             "required": true
                         }
@@ -6941,6 +6984,9 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "UchimeStats": ""
             }
         },
         "feature-table": {
@@ -7053,10 +7099,10 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -7065,10 +7111,10 @@
                     "outputs": {
                         "transposed_feature_table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ]
                         }
                     }
@@ -7110,8 +7156,8 @@
                     "inputs": {
                         "tables": {
                             "type": [
-                                "List[FeatureTable[Frequency]]",
                                 "List[FeatureTable[RelativeFrequency]]",
+                                "List[FeatureTable[Frequency]]",
                                 "List[FeatureTable[PresenceAbsence]]"
                             ],
                             "required": true
@@ -7126,9 +7172,9 @@
                     "outputs": {
                         "merged_table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ]
                         }
                     }
@@ -7176,10 +7222,10 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -7201,10 +7247,10 @@
                     "outputs": {
                         "renamed_table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ]
                         }
                     }
@@ -7214,10 +7260,10 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -7263,10 +7309,10 @@
                     "outputs": {
                         "filtered_table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ]
                         }
                     }
@@ -7276,10 +7322,10 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -7301,10 +7347,10 @@
                     "outputs": {
                         "filtered_table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ]
                         }
                     }
@@ -7410,10 +7456,10 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -7442,8 +7488,8 @@
                         "table": {
                             "type": [
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[PresenceAbsence]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -7463,8 +7509,8 @@
                         "table": {
                             "type": [
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[PresenceAbsence]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -7588,10 +7634,10 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Composition]",
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -7643,8 +7689,8 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -7673,7 +7719,8 @@
                         }
                     }
                 }
-            }
+            },
+            "types": {}
         },
         "diversity": {
             "actions": {
@@ -8255,9 +8302,9 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
@@ -8303,9 +8350,9 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -8337,9 +8384,9 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
@@ -8369,9 +8416,9 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -8650,7 +8697,8 @@
                         }
                     }
                 }
-            }
+            },
+            "types": {}
         },
         "taxa": {
             "actions": {
@@ -8689,8 +8737,8 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
@@ -8722,8 +8770,8 @@
                     "outputs": {
                         "filtered_table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ]
                         }
                     }
@@ -8775,8 +8823,8 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
@@ -8811,8 +8859,8 @@
                         "table": {
                             "type": [
                                 "FeatureTable[RelativeFrequency]",
-                                "FeatureTable[PresenceAbsence]",
-                                "FeatureTable[Frequency]"
+                                "FeatureTable[Frequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
@@ -8841,7 +8889,8 @@
                         }
                     }
                 }
-            }
+            },
+            "types": {}
         },
         "longitudinal": {
             "actions": {
@@ -9491,6 +9540,9 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "SampleData[FirstDifferences]": ""
             }
         },
         "alignment": {
@@ -9535,8 +9587,8 @@
                     "outputs": {
                         "alignment": {
                             "type": [
-                                "FeatureData[AlignedSequence]",
-                                "FeatureData[AlignedProteinSequence]"
+                                "FeatureData[AlignedProteinSequence]",
+                                "FeatureData[AlignedSequence]"
                             ]
                         }
                     }
@@ -9546,8 +9598,8 @@
                     "inputs": {
                         "alignment": {
                             "type": [
-                                "FeatureData[AlignedSequence]",
-                                "FeatureData[AlignedProteinSequence]"
+                                "FeatureData[AlignedProteinSequence]",
+                                "FeatureData[AlignedSequence]"
                             ],
                             "required": true
                         },
@@ -9596,8 +9648,8 @@
                     "outputs": {
                         "expanded_alignment": {
                             "type": [
-                                "FeatureData[AlignedSequence]",
-                                "FeatureData[AlignedProteinSequence]"
+                                "FeatureData[AlignedProteinSequence]",
+                                "FeatureData[AlignedSequence]"
                             ]
                         }
                     }
@@ -9607,8 +9659,8 @@
                     "inputs": {
                         "alignment": {
                             "type": [
-                                "FeatureData[AlignedSequence]",
-                                "FeatureData[AlignedProteinSequence]"
+                                "FeatureData[AlignedProteinSequence]",
+                                "FeatureData[AlignedSequence]"
                             ],
                             "required": true
                         }
@@ -9626,13 +9678,14 @@
                     "outputs": {
                         "masked_alignment": {
                             "type": [
-                                "FeatureData[AlignedSequence]",
-                                "FeatureData[AlignedProteinSequence]"
+                                "FeatureData[AlignedProteinSequence]",
+                                "FeatureData[AlignedSequence]"
                             ]
                         }
                     }
                 }
-            }
+            },
+            "types": {}
         },
         "diversity-lib": {
             "actions": {
@@ -9641,9 +9694,9 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
@@ -9673,9 +9726,9 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -9773,9 +9826,9 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         }
@@ -9799,9 +9852,9 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
@@ -10021,7 +10074,8 @@
                         }
                     }
                 }
-            }
+            },
+            "types": {}
         },
         "sourmash": {
             "actions": {
@@ -10086,6 +10140,9 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "MinHashSig": ""
             }
         },
         "vizard": {
@@ -10230,7 +10287,8 @@
                         }
                     }
                 }
-            }
+            },
+            "types": {}
         },
         "types": {
             "actions": {
@@ -10263,8 +10321,8 @@
                     "inputs": {
                         "demux": {
                             "type": [
-                                "SampleData[SequencesWithQuality]",
-                                "SampleData[JoinedSequencesWithQuality]"
+                                "SampleData[JoinedSequencesWithQuality]",
+                                "SampleData[SequencesWithQuality]"
                             ],
                             "required": true
                         }
@@ -10493,14 +10551,14 @@
                     "inputs": {
                         "kraken2_reports": {
                             "type": [
+                                "List[FeatureData[Kraken2Report % Properties('mags')]]",
                                 "List[SampleData[Kraken2Report % Properties('reads', 'mags')]]",
-                                "List[SampleData[Kraken2Report % Properties('contigs', 'mags')]]",
-                                "List[SampleData[Kraken2Report % Properties('reads', 'contigs', 'mags')]]",
+                                "List[SampleData[Kraken2Report % Properties('reads')]]",
+                                "List[SampleData[Kraken2Report % Properties('reads', 'contigs')]]",
                                 "List[SampleData[Kraken2Report % Properties('contigs')]]",
                                 "List[SampleData[Kraken2Report % Properties('mags')]]",
-                                "List[SampleData[Kraken2Report % Properties('reads')]]",
-                                "List[FeatureData[Kraken2Report % Properties('mags')]]",
-                                "List[SampleData[Kraken2Report % Properties('reads', 'contigs')]]"
+                                "List[SampleData[Kraken2Report % Properties('reads', 'contigs', 'mags')]]",
+                                "List[SampleData[Kraken2Report % Properties('contigs', 'mags')]]"
                             ],
                             "required": true
                         }
@@ -10509,13 +10567,13 @@
                     "outputs": {
                         "collated_kraken2_reports": {
                             "type": [
-                                "SampleData[Kraken2Report % Properties('reads', 'contigs', 'mags')]",
-                                "SampleData[Kraken2Report % Properties('reads', 'contigs')]",
-                                "SampleData[Kraken2Report % Properties('mags')]",
-                                "SampleData[Kraken2Report % Properties('contigs', 'mags')]",
                                 "SampleData[Kraken2Report % Properties('reads')]",
                                 "SampleData[Kraken2Report % Properties('contigs')]",
+                                "SampleData[Kraken2Report % Properties('contigs', 'mags')]",
                                 "FeatureData[Kraken2Report % Properties('mags')]",
+                                "SampleData[Kraken2Report % Properties('reads', 'contigs')]",
+                                "SampleData[Kraken2Report % Properties('reads', 'contigs', 'mags')]",
+                                "SampleData[Kraken2Report % Properties('mags')]",
                                 "SampleData[Kraken2Report % Properties('reads', 'mags')]"
                             ]
                         }
@@ -10526,14 +10584,14 @@
                     "inputs": {
                         "kraken2_outputs": {
                             "type": [
-                                "List[SampleData[Kraken2Output % Properties('reads', 'contigs')]]",
                                 "List[FeatureData[Kraken2Output % Properties('mags')]]",
-                                "List[SampleData[Kraken2Output % Properties('contigs')]]",
-                                "List[SampleData[Kraken2Output % Properties('contigs', 'mags')]]",
                                 "List[SampleData[Kraken2Output % Properties('reads', 'contigs', 'mags')]]",
-                                "List[SampleData[Kraken2Output % Properties('reads')]]",
+                                "List[SampleData[Kraken2Output % Properties('contigs')]]",
+                                "List[SampleData[Kraken2Output % Properties('reads', 'mags')]]",
+                                "List[SampleData[Kraken2Output % Properties('contigs', 'mags')]]",
                                 "List[SampleData[Kraken2Output % Properties('mags')]]",
-                                "List[SampleData[Kraken2Output % Properties('reads', 'mags')]]"
+                                "List[SampleData[Kraken2Output % Properties('reads', 'contigs')]]",
+                                "List[SampleData[Kraken2Output % Properties('reads')]]"
                             ],
                             "required": true
                         }
@@ -10542,14 +10600,14 @@
                     "outputs": {
                         "collated_kraken2_outputs": {
                             "type": [
-                                "SampleData[Kraken2Output % Properties('reads', 'mags')]",
+                                "SampleData[Kraken2Output % Properties('reads', 'contigs', 'mags')]",
+                                "SampleData[Kraken2Output % Properties('reads', 'contigs')]",
                                 "SampleData[Kraken2Output % Properties('reads')]",
                                 "FeatureData[Kraken2Output % Properties('mags')]",
-                                "SampleData[Kraken2Output % Properties('contigs')]",
+                                "SampleData[Kraken2Output % Properties('reads', 'mags')]",
                                 "SampleData[Kraken2Output % Properties('contigs', 'mags')]",
-                                "SampleData[Kraken2Output % Properties('mags')]",
-                                "SampleData[Kraken2Output % Properties('reads', 'contigs')]",
-                                "SampleData[Kraken2Output % Properties('reads', 'contigs', 'mags')]"
+                                "SampleData[Kraken2Output % Properties('contigs')]",
+                                "SampleData[Kraken2Output % Properties('mags')]"
                             ]
                         }
                     }
@@ -10559,13 +10617,13 @@
                     "inputs": {
                         "reports": {
                             "type": [
-                                "SampleData[Kraken2Report % Properties('reads', 'contigs', 'mags')]",
-                                "SampleData[Kraken2Report % Properties('reads', 'contigs')]",
-                                "SampleData[Kraken2Report % Properties('mags')]",
-                                "SampleData[Kraken2Report % Properties('contigs', 'mags')]",
                                 "SampleData[Kraken2Report % Properties('reads')]",
                                 "SampleData[Kraken2Report % Properties('contigs')]",
+                                "SampleData[Kraken2Report % Properties('contigs', 'mags')]",
                                 "FeatureData[Kraken2Report % Properties('mags')]",
+                                "SampleData[Kraken2Report % Properties('reads', 'contigs')]",
+                                "SampleData[Kraken2Report % Properties('reads', 'contigs', 'mags')]",
+                                "SampleData[Kraken2Report % Properties('mags')]",
                                 "SampleData[Kraken2Report % Properties('reads', 'mags')]"
                             ],
                             "required": true
@@ -10580,14 +10638,14 @@
                     "outputs": {
                         "partitioned_reports": {
                             "type": [
+                                "Collection[SampleData[Kraken2Report % Properties('reads')]]",
+                                "Collection[SampleData[Kraken2Report % Properties('contigs', 'mags')]]",
                                 "Collection[SampleData[Kraken2Report % Properties('reads', 'contigs')]]",
-                                "Collection[SampleData[Kraken2Report % Properties('contigs')]]",
-                                "Collection[SampleData[Kraken2Report % Properties('reads', 'contigs', 'mags')]]",
                                 "Collection[SampleData[Kraken2Report % Properties('mags')]]",
                                 "Collection[FeatureData[Kraken2Report % Properties('mags')]]",
-                                "Collection[SampleData[Kraken2Report % Properties('contigs', 'mags')]]",
                                 "Collection[SampleData[Kraken2Report % Properties('reads', 'mags')]]",
-                                "Collection[SampleData[Kraken2Report % Properties('reads')]]"
+                                "Collection[SampleData[Kraken2Report % Properties('contigs')]]",
+                                "Collection[SampleData[Kraken2Report % Properties('reads', 'contigs', 'mags')]]"
                             ]
                         }
                     }
@@ -10597,14 +10655,14 @@
                     "inputs": {
                         "outputs": {
                             "type": [
-                                "SampleData[Kraken2Output % Properties('reads', 'mags')]",
+                                "SampleData[Kraken2Output % Properties('reads', 'contigs', 'mags')]",
+                                "SampleData[Kraken2Output % Properties('reads', 'contigs')]",
                                 "SampleData[Kraken2Output % Properties('reads')]",
                                 "FeatureData[Kraken2Output % Properties('mags')]",
-                                "SampleData[Kraken2Output % Properties('contigs')]",
+                                "SampleData[Kraken2Output % Properties('reads', 'mags')]",
                                 "SampleData[Kraken2Output % Properties('contigs', 'mags')]",
-                                "SampleData[Kraken2Output % Properties('mags')]",
-                                "SampleData[Kraken2Output % Properties('reads', 'contigs')]",
-                                "SampleData[Kraken2Output % Properties('reads', 'contigs', 'mags')]"
+                                "SampleData[Kraken2Output % Properties('contigs')]",
+                                "SampleData[Kraken2Output % Properties('mags')]"
                             ],
                             "required": true
                         }
@@ -10618,14 +10676,14 @@
                     "outputs": {
                         "partitioned_outputs": {
                             "type": [
+                                "Collection[SampleData[Kraken2Output % Properties('reads', 'contigs')]]",
+                                "Collection[SampleData[Kraken2Output % Properties('mags')]]",
+                                "Collection[SampleData[Kraken2Output % Properties('reads', 'contigs', 'mags')]]",
+                                "Collection[SampleData[Kraken2Output % Properties('reads', 'mags')]]",
                                 "Collection[SampleData[Kraken2Output % Properties('reads')]]",
                                 "Collection[SampleData[Kraken2Output % Properties('contigs', 'mags')]]",
-                                "Collection[FeatureData[Kraken2Output % Properties('mags')]]",
-                                "Collection[SampleData[Kraken2Output % Properties('mags')]]",
-                                "Collection[SampleData[Kraken2Output % Properties('reads', 'mags')]]",
                                 "Collection[SampleData[Kraken2Output % Properties('contigs')]]",
-                                "Collection[SampleData[Kraken2Output % Properties('reads', 'contigs')]]",
-                                "Collection[SampleData[Kraken2Output % Properties('reads', 'contigs', 'mags')]]"
+                                "Collection[FeatureData[Kraken2Output % Properties('mags')]]"
                             ]
                         }
                     }
@@ -10678,8 +10736,8 @@
                     "inputs": {
                         "genomes": {
                             "type": [
-                                "List[FeatureData[Sequence]]",
-                                "List[GenomeData[DNASequence]]"
+                                "List[GenomeData[DNASequence]]",
+                                "List[FeatureData[Sequence]]"
                             ],
                             "required": true
                         }
@@ -10770,6 +10828,100 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "Bowtie2Index": "An index of sequences for Bowtie 2 to search against.",
+                "DistanceMatrix": "A symmetric matrix representing distances between entities.",
+                "FeatureData[Taxonomy]": "Hierarchical metadata or annotations associated with a set of features. This can contain one or more hierarchical levels, and annotations can be anything (e.g., taxonomy of organisms, functional categorization of gene families, ...) as long as it is strictly hierarchical.",
+                "FeatureData[Sequence]": "Unaligned DNA sequences associated with a set of feature identifiers (e.g., ASV sequences or OTU representative sequence). Exactly one sequence is associated with each feature identifier.",
+                "FeatureData[RNASequence]": "Unaligned RNA sequences associated with a set of feature identifiers. Exactly one sequence is associated with each feature identifier.",
+                "FeatureData[PairedEndSequence]": "",
+                "FeatureData[PairedEndRNASequence]": "",
+                "FeatureData[AlignedSequence]": "Aligned DNA sequences associated with a set of feature identifiers (e.g., aligned ASV sequences or OTU representative sequence). Exactly one sequence is associated with each feature identifier.",
+                "FeatureData[AlignedRNASequence]": "Aligned RNA sequences associated with a set of feature identifiers. Exactly one sequence is associated with each feature identifier.",
+                "FeatureData[Differential]": "",
+                "FeatureData[ProteinSequence]": "Unaligned protein sequences associated with a set of feature identifiers. Exactly one sequence is associated with each feature identifier.",
+                "FeatureData[AlignedProteinSequence]": "Aligned protein sequences associated with a set of feature identifiers. Exactly one sequence is associated with each feature identifier.",
+                "FeatureData[BLAST6]": "BLAST results associated with a set of feature identifiers.",
+                "FeatureData[SequenceCharacteristics]": "Characteristics of sequences (e.g., the length of a gene in basepairs).",
+                "FeatureData[MAG]": "",
+                "FeatureData[Contig]": "",
+                "FeatureData[SingleBowtie2Index]": "",
+                "FeatureMap[MAGtoContigs]": "",
+                "FeatureMap[TaxonomyToContigs]": "",
+                "FeatureMap[FunctionToContigs]": "",
+                "FeatureTable[Frequency]": "A feature table (e.g., samples by ASVs) where each value in the matrix is a whole number greater than or equal to 0 representing the frequency or count of a feature in the corresponding sample. These data should be raw (not normalized) counts.",
+                "FeatureTable[RelativeFrequency]": "A feature table (e.g., samples by ASVs) where each value in the matrix is a real number greater than or equal to 0.0 and less than or equal to 1.0 representing the proportion of the sample that is composed of that feature. The feature values for each sample should sum to 1.0.",
+                "FeatureTable[PresenceAbsence]": "A feature table (e.g., samples by ASVs) where each value indicates is a boolean indication of whether the feature is observed in the sample or not.",
+                "FeatureTable[Balance]": "",
+                "FeatureTable[Composition]": "A feature table (e.g., samples by ASVs) where each value in the matrix is a whole number greater than 0 representing the frequency or count of a feature in the corresponding sample. These data are typically not raw counts, having been transformed in some way to exclude zero counts.",
+                "FeatureTable[PercentileNormalized]": "",
+                "FeatureTable[Design]": "",
+                "FeatureTable[Normalized]": "A feature table that was normalized.",
+                "GenomeData[Genes]": "",
+                "GenomeData[Proteins]": "",
+                "GenomeData[Loci]": "",
+                "GenomeData[Orthologs]": "",
+                "GenomeData[DNASequence]": "",
+                "GenomeData[NOG]": "",
+                "SampleData[Orthologs]": "",
+                "SampleData[NOG]": "",
+                "KaijuDB": "",
+                "SampleData[Kraken2Report]": "",
+                "FeatureData[Kraken2Report]": "",
+                "SampleData[Kraken2Output]": "",
+                "FeatureData[Kraken2Output]": "",
+                "Kraken2DB": "",
+                "Kraken2DBReport": "",
+                "BrackenDB": "",
+                "ImmutableMetadata": "Immutable sample or feature metadata.",
+                "MultiplexedSingleEndBarcodeInSequence": "Multiplexed sequences (i.e., representing multiple difference samples), which are single-end reads, and which contain the barcode (i.e., index) indicating the source sample as part of the sequence read.",
+                "MultiplexedPairedEndBarcodeInSequence": "Multiplexed sequences (i.e., representing multiple difference samples), which are paired-end reads, and which contain the barcode (i.e., index) indicating the source sample as part of the sequence read.",
+                "RawSequences": "",
+                "EMPSingleEndSequences": "",
+                "EMPPairedEndSequences": "",
+                "ErrorCorrectionDetails": "",
+                "PCoAResults": "The results of running principal coordinate analysis (PCoA).",
+                "ProcrustesStatistics": "The results of running Procrustes analysis.",
+                "SampleData[Sequences]": "Collections of sequences associated with specified samples (i.e., demultiplexed sequences).",
+                "SampleData[SequencesWithQuality]": "Collections of sequences with quality scores associated with specified samples (i.e., demultiplexed sequences).",
+                "SampleData[JoinedSequencesWithQuality]": "Collections of joined paired-end sequences with quality scores associated with specified samples (i.e., demultiplexed sequences).",
+                "SampleData[PairedEndSequencesWithQuality]": "Collections of unjoined paired-end sequences with quality scores associated with specified samples (i.e., demultiplexed sequences).",
+                "SampleData[MAGs]": "",
+                "SampleData[Contigs]": "",
+                "SampleData[SingleBowtie2Index]": "",
+                "SampleData[MultiBowtie2Index]": "",
+                "SampleData[AlignmentMap]": "",
+                "FeatureData[AlignmentMap]": "",
+                "SampleData[MultiAlignmentMap]": "",
+                "ProfileHMM[PressedProtein]": "A collection of profile Hidden Markov Models for amino acid sequences in binary format and indexed.",
+                "ProfileHMM[PressedDNA]": "A collection of profile Hidden Markov Models for DNA sequences in binary format and indexed.",
+                "ProfileHMM[PressedRNA]": "A collection of profile Hidden Markov Models for RNA sequences in binary format and indexed.",
+                "ProfileHMM[SingleProtein]": "One single profile Hidden Markov Model representing a group of related proteins.",
+                "ProfileHMM[SingleDNA]": "One single profile Hidden Markov Model representing a group of related DNA sequences.",
+                "ProfileHMM[SingleRNA]": "One single profile Hidden Markov Model representing a group of related RNA sequences.",
+                "ProfileHMM[MultipleProtein]": "A collection of profile Hidden Markov Models, each representing a group of related proteins.",
+                "ProfileHMM[MultipleDNA]": "A collection of profile Hidden Markov Models, each representing a group of related DNA sequences.",
+                "ProfileHMM[MultipleRNA]": "A collection of profile Hidden Markov Models, each representing a group of related RNA sequences.",
+                "ReferenceDB[Eggnog]": "",
+                "ReferenceDB[Diamond]": "",
+                "ReferenceDB[NCBITaxonomy]": "",
+                "ReferenceDB[EggnogProteinSequences]": "",
+                "SampleData[AlphaDiversity]": "Alpha diversity values, each associated with a single sample identifier.",
+                "Phylogeny[Unrooted]": "A phylogenetic tree not containing a defined root.",
+                "Phylogeny[Rooted]": "A phylogenetic tree containing a defined root.",
+                "Hierarchy": "",
+                "Dist1D[NestedOrdered, Independent]": "",
+                "Dist1D[Multi, Matched]": "",
+                "Dist1D[NestedUnordered, Matched]": "",
+                "Dist1D[Multi, Independent]": "",
+                "Dist1D[Unordered, Matched]": "",
+                "Dist1D[Unordered, Independent]": "",
+                "Dist1D[Ordered, Matched]": "",
+                "Dist1D[NestedOrdered, Matched]": "",
+                "Dist1D[NestedUnordered, Independent]": "",
+                "Dist1D[Ordered, Independent]": "",
+                "StatsTable[Pairwise]": ""
             }
         },
         "fondue": {
@@ -10779,9 +10931,9 @@
                     "inputs": {
                         "accession_ids": {
                             "type": [
-                                "NCBIAccessionIDs",
                                 "SRAMetadata",
-                                "SRAFailedIDs"
+                                "SRAFailedIDs",
+                                "NCBIAccessionIDs"
                             ],
                             "required": true
                         },
@@ -10857,8 +11009,8 @@
                     "outputs": {
                         "combined_seqs": {
                             "type": [
-                                "SampleData[SequencesWithQuality]",
-                                "SampleData[PairedEndSequencesWithQuality]"
+                                "SampleData[PairedEndSequencesWithQuality]",
+                                "SampleData[SequencesWithQuality]"
                             ]
                         }
                     }
@@ -10942,9 +11094,9 @@
                     "inputs": {
                         "accession_ids": {
                             "type": [
-                                "NCBIAccessionIDs",
                                 "SRAMetadata",
-                                "SRAFailedIDs"
+                                "SRAFailedIDs",
+                                "NCBIAccessionIDs"
                             ],
                             "required": true
                         }
@@ -10994,9 +11146,9 @@
                     "inputs": {
                         "accession_ids": {
                             "type": [
-                                "NCBIAccessionIDs",
                                 "SRAMetadata",
-                                "SRAFailedIDs"
+                                "SRAFailedIDs",
+                                "NCBIAccessionIDs"
                             ],
                             "required": true
                         },
@@ -11048,6 +11200,11 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "SRAMetadata": "",
+                "SRAFailedIDs": "",
+                "NCBIAccessionIDs": ""
             }
         },
         "demux": {
@@ -11149,8 +11306,8 @@
                     "inputs": {
                         "demux": {
                             "type": [
-                                "SampleData[SequencesWithQuality]",
-                                "SampleData[JoinedSequencesWithQuality]"
+                                "SampleData[JoinedSequencesWithQuality]",
+                                "SampleData[SequencesWithQuality]"
                             ],
                             "required": true
                         }
@@ -11217,8 +11374,8 @@
                     "inputs": {
                         "sequences": {
                             "type": [
-                                "SampleData[SequencesWithQuality]",
-                                "SampleData[PairedEndSequencesWithQuality]"
+                                "SampleData[PairedEndSequencesWithQuality]",
+                                "SampleData[SequencesWithQuality]"
                             ],
                             "required": true
                         }
@@ -11274,9 +11431,9 @@
                     "inputs": {
                         "demux": {
                             "type": [
-                                "SampleData[SequencesWithQuality]",
                                 "SampleData[PairedEndSequencesWithQuality]",
-                                "SampleData[JoinedSequencesWithQuality]"
+                                "SampleData[JoinedSequencesWithQuality]",
+                                "SampleData[SequencesWithQuality]"
                             ],
                             "required": true
                         }
@@ -11302,9 +11459,9 @@
                     "outputs": {
                         "filtered_demux": {
                             "type": [
-                                "SampleData[SequencesWithQuality]",
                                 "SampleData[PairedEndSequencesWithQuality]",
-                                "SampleData[JoinedSequencesWithQuality]"
+                                "SampleData[JoinedSequencesWithQuality]",
+                                "SampleData[SequencesWithQuality]"
                             ]
                         }
                     }
@@ -11314,9 +11471,9 @@
                     "inputs": {
                         "data": {
                             "type": [
-                                "SampleData[SequencesWithQuality]",
                                 "SampleData[PairedEndSequencesWithQuality]",
-                                "SampleData[JoinedSequencesWithQuality]"
+                                "SampleData[JoinedSequencesWithQuality]",
+                                "SampleData[SequencesWithQuality]"
                             ],
                             "required": true
                         }
@@ -11335,7 +11492,8 @@
                         }
                     }
                 }
-            }
+            },
+            "types": {}
         },
         "sapienns": {
             "actions": {
@@ -11458,6 +11616,11 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "MetaphlanMergedAbundanceTable": "",
+                "HumannPathAbundanceTable": "",
+                "HumannGeneFamilyTable": ""
             }
         },
         "cutadapt": {
@@ -11784,7 +11947,8 @@
                         }
                     }
                 }
-            }
+            },
+            "types": {}
         },
         "dada2": {
             "actions": {
@@ -12205,6 +12369,10 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "SampleData[DADA2Stats]": "",
+                "DADA2BaseTransitionStats": ""
             }
         },
         "boots": {
@@ -12294,9 +12462,9 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
@@ -12338,9 +12506,9 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
@@ -12386,9 +12554,9 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
@@ -12446,9 +12614,9 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
@@ -12510,9 +12678,9 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
@@ -12595,17 +12763,17 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
                         "sequences": {
                             "type": [
-                                "FeatureData[RNASequence]",
+                                "FeatureData[ProteinSequence]",
                                 "FeatureData[Sequence]",
-                                "FeatureData[ProteinSequence]"
+                                "FeatureData[RNASequence]"
                             ],
                             "required": true
                         }
@@ -12709,7 +12877,8 @@
                         }
                     }
                 }
-            }
+            },
+            "types": {}
         },
         "fragment-insertion": {
             "actions": {
@@ -12821,6 +12990,10 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "Placements": "",
+                "SeppReferenceDatabase": ""
             }
         },
         "deblur": {
@@ -12994,6 +13167,9 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "DeblurStats": ""
             }
         },
         "kmerizer": {
@@ -13003,9 +13179,9 @@
                     "inputs": {
                         "sequences": {
                             "type": [
-                                "FeatureData[RNASequence]",
+                                "FeatureData[ProteinSequence]",
                                 "FeatureData[Sequence]",
-                                "FeatureData[ProteinSequence]"
+                                "FeatureData[RNASequence]"
                             ],
                             "required": true
                         },
@@ -13055,9 +13231,9 @@
                     "inputs": {
                         "sequences": {
                             "type": [
-                                "FeatureData[RNASequence]",
+                                "FeatureData[ProteinSequence]",
                                 "FeatureData[Sequence]",
-                                "FeatureData[ProteinSequence]"
+                                "FeatureData[RNASequence]"
                             ],
                             "required": true
                         },
@@ -13166,7 +13342,8 @@
                         }
                     }
                 }
-            }
+            },
+            "types": {}
         },
         "stats": {
             "actions": {
@@ -13259,9 +13436,9 @@
                     "inputs": {
                         "distribution": {
                             "type": [
-                                "Dist1D[NestedOrdered]",
                                 "Dist1D[NestedUnordered]",
-                                "Dist1D[Multi]"
+                                "Dist1D[Multi]",
+                                "Dist1D[NestedOrdered]"
                             ],
                             "required": true
                         }
@@ -13347,8 +13524,8 @@
                             "type": [
                                 "Dist1D[NestedOrdered, Matched]",
                                 "Dist1D[Multi, Matched]",
-                                "Dist1D[Multi, Independent]",
-                                "Dist1D[NestedOrdered, Independent]"
+                                "Dist1D[NestedOrdered, Independent]",
+                                "Dist1D[Multi, Independent]"
                             ]
                         }
                     }
@@ -13358,11 +13535,11 @@
                     "inputs": {
                         "data": {
                             "type": [
+                                "Dist1D[NestedOrdered]",
                                 "Dist1D[Unordered]",
                                 "Dist1D[NestedUnordered]",
                                 "Dist1D[Multi]",
-                                "Dist1D[Ordered]",
-                                "Dist1D[NestedOrdered]"
+                                "Dist1D[Ordered]"
                             ],
                             "required": true
                         },
@@ -13388,8 +13565,8 @@
                         "distribution": {
                             "type": [
                                 "Dist1D[NestedUnordered]",
-                                "Dist1D[Multi, Independent]",
-                                "Dist1D[NestedOrdered]"
+                                "Dist1D[NestedOrdered]",
+                                "Dist1D[Multi, Independent]"
                             ],
                             "required": true
                         }
@@ -13413,9 +13590,9 @@
                     "inputs": {
                         "distribution": {
                             "type": [
-                                "Dist1D[NestedOrdered]",
                                 "Dist1D[NestedUnordered]",
-                                "Dist1D[Multi]"
+                                "Dist1D[Multi]",
+                                "Dist1D[NestedOrdered]"
                             ],
                             "required": true
                         }
@@ -13467,8 +13644,8 @@
                             "type": [
                                 "Dist1D[NestedOrdered, Matched]",
                                 "Dist1D[Multi, Matched]",
-                                "Dist1D[Multi, Independent]",
-                                "Dist1D[NestedOrdered, Independent]"
+                                "Dist1D[NestedOrdered, Independent]",
+                                "Dist1D[Multi, Independent]"
                             ]
                         },
                         "stats": {
@@ -13483,7 +13660,8 @@
                         }
                     }
                 }
-            }
+            },
+            "types": {}
         },
         "phylogeny": {
             "actions": {
@@ -13819,16 +13997,16 @@
                     "inputs": {
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ],
                             "required": true
                         },
                         "tree": {
                             "type": [
-                                "Phylogeny[Rooted]",
-                                "Phylogeny[Unrooted]"
+                                "Phylogeny[Unrooted]",
+                                "Phylogeny[Rooted]"
                             ],
                             "required": true
                         }
@@ -13837,9 +14015,9 @@
                     "outputs": {
                         "filtered_table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]"
                             ]
                         }
                     }
@@ -13849,17 +14027,17 @@
                     "inputs": {
                         "tree": {
                             "type": [
-                                "Phylogeny[Rooted]",
-                                "Phylogeny[Unrooted]"
+                                "Phylogeny[Unrooted]",
+                                "Phylogeny[Rooted]"
                             ],
                             "required": true
                         },
                         "table": {
                             "type": [
-                                "FeatureTable[PresenceAbsence]",
-                                "FeatureTable[Composition]",
                                 "FeatureTable[Frequency]",
-                                "FeatureTable[RelativeFrequency]"
+                                "FeatureTable[RelativeFrequency]",
+                                "FeatureTable[PresenceAbsence]",
+                                "FeatureTable[Composition]"
                             ],
                             "required": false
                         }
@@ -13877,8 +14055,8 @@
                     "outputs": {
                         "filtered_tree": {
                             "type": [
-                                "Phylogeny[Rooted]",
-                                "Phylogeny[Unrooted]"
+                                "Phylogeny[Unrooted]",
+                                "Phylogeny[Rooted]"
                             ]
                         }
                     }
@@ -14112,7 +14290,8 @@
                         }
                     }
                 }
-            }
+            },
+            "types": {}
         },
         "amrfinderplus": {
             "actions": {
@@ -14177,9 +14356,9 @@
                         },
                         "sequences": {
                             "type": [
-                                "SampleData[MAGs]",
+                                "SampleData[Contigs]",
                                 "FeatureData[MAG]",
-                                "SampleData[Contigs]"
+                                "SampleData[MAGs]"
                             ],
                             "required": false
                         },
@@ -14265,6 +14444,10 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "AMRFinderPlusDatabase": "",
+                "GenomeData[AMRFinderPlusAnnotations]": ""
             }
         },
         "viromics": {
@@ -14331,6 +14514,10 @@
                         }
                     }
                 }
+            },
+            "types": {
+                "CheckVDB": "CheckV database.",
+                "SampleData[ViromicsMetadata]": ""
             }
         }
     },
@@ -14415,5 +14602,122 @@
                 "demux"
             ]
         }
+    },
+    "types": {
+        "FeatureData[DifferentialAbundance]": "",
+        "FeatureData[ANCOMBC2Output]": "",
+        "QualityFilterStats": "",
+        "SampleEstimator[Classifier]": "",
+        "SampleEstimator[Regressor]": "",
+        "SampleData[BooleanSeries]": "",
+        "SampleData[RegressorPredictions]": "",
+        "SampleData[ClassifierPredictions]": "",
+        "FeatureData[Importance]": "",
+        "SampleData[Probabilities]": "",
+        "SampleData[TrueTargets]": "",
+        "BLASTDB": "",
+        "TaxonomicClassifier": "",
+        "FeatureData[DecontamScore]": "",
+        "FeatureData[SILVATaxonomy]": "",
+        "FeatureData[SILVATaxidMap]": "",
+        "SampleData[ArtificialGrouping]": "",
+        "UchimeStats": "",
+        "SampleData[FirstDifferences]": "",
+        "Bowtie2Index": "An index of sequences for Bowtie 2 to search against.",
+        "DistanceMatrix": "A symmetric matrix representing distances between entities.",
+        "FeatureData[Taxonomy]": "Hierarchical metadata or annotations associated with a set of features. This can contain one or more hierarchical levels, and annotations can be anything (e.g., taxonomy of organisms, functional categorization of gene families, ...) as long as it is strictly hierarchical.",
+        "FeatureData[Sequence]": "Unaligned DNA sequences associated with a set of feature identifiers (e.g., ASV sequences or OTU representative sequence). Exactly one sequence is associated with each feature identifier.",
+        "FeatureData[RNASequence]": "Unaligned RNA sequences associated with a set of feature identifiers. Exactly one sequence is associated with each feature identifier.",
+        "FeatureData[PairedEndSequence]": "",
+        "FeatureData[PairedEndRNASequence]": "",
+        "FeatureData[AlignedSequence]": "Aligned DNA sequences associated with a set of feature identifiers (e.g., aligned ASV sequences or OTU representative sequence). Exactly one sequence is associated with each feature identifier.",
+        "FeatureData[AlignedRNASequence]": "Aligned RNA sequences associated with a set of feature identifiers. Exactly one sequence is associated with each feature identifier.",
+        "FeatureData[Differential]": "",
+        "FeatureData[ProteinSequence]": "Unaligned protein sequences associated with a set of feature identifiers. Exactly one sequence is associated with each feature identifier.",
+        "FeatureData[AlignedProteinSequence]": "Aligned protein sequences associated with a set of feature identifiers. Exactly one sequence is associated with each feature identifier.",
+        "FeatureData[BLAST6]": "BLAST results associated with a set of feature identifiers.",
+        "FeatureData[SequenceCharacteristics]": "Characteristics of sequences (e.g., the length of a gene in basepairs).",
+        "FeatureData[MAG]": "",
+        "FeatureData[Contig]": "",
+        "FeatureData[SingleBowtie2Index]": "",
+        "FeatureMap[MAGtoContigs]": "",
+        "FeatureMap[TaxonomyToContigs]": "",
+        "FeatureMap[FunctionToContigs]": "",
+        "FeatureTable[Frequency]": "A feature table (e.g., samples by ASVs) where each value in the matrix is a whole number greater than or equal to 0 representing the frequency or count of a feature in the corresponding sample. These data should be raw (not normalized) counts.",
+        "FeatureTable[RelativeFrequency]": "A feature table (e.g., samples by ASVs) where each value in the matrix is a real number greater than or equal to 0.0 and less than or equal to 1.0 representing the proportion of the sample that is composed of that feature. The feature values for each sample should sum to 1.0.",
+        "FeatureTable[PresenceAbsence]": "A feature table (e.g., samples by ASVs) where each value indicates is a boolean indication of whether the feature is observed in the sample or not.",
+        "FeatureTable[Balance]": "",
+        "FeatureTable[Composition]": "A feature table (e.g., samples by ASVs) where each value in the matrix is a whole number greater than 0 representing the frequency or count of a feature in the corresponding sample. These data are typically not raw counts, having been transformed in some way to exclude zero counts.",
+        "FeatureTable[PercentileNormalized]": "",
+        "FeatureTable[Design]": "",
+        "FeatureTable[Normalized]": "A feature table that was normalized.",
+        "GenomeData[Genes]": "",
+        "GenomeData[Proteins]": "",
+        "GenomeData[Loci]": "",
+        "GenomeData[Orthologs]": "",
+        "GenomeData[DNASequence]": "",
+        "GenomeData[NOG]": "",
+        "SampleData[Orthologs]": "",
+        "SampleData[NOG]": "",
+        "KaijuDB": "",
+        "SampleData[Kraken2Report]": "",
+        "FeatureData[Kraken2Report]": "",
+        "SampleData[Kraken2Output]": "",
+        "FeatureData[Kraken2Output]": "",
+        "Kraken2DB": "",
+        "Kraken2DBReport": "",
+        "BrackenDB": "",
+        "ImmutableMetadata": "Immutable sample or feature metadata.",
+        "MultiplexedSingleEndBarcodeInSequence": "Multiplexed sequences (i.e., representing multiple difference samples), which are single-end reads, and which contain the barcode (i.e., index) indicating the source sample as part of the sequence read.",
+        "MultiplexedPairedEndBarcodeInSequence": "Multiplexed sequences (i.e., representing multiple difference samples), which are paired-end reads, and which contain the barcode (i.e., index) indicating the source sample as part of the sequence read.",
+        "RawSequences": "",
+        "EMPSingleEndSequences": "",
+        "EMPPairedEndSequences": "",
+        "ErrorCorrectionDetails": "",
+        "PCoAResults": "The results of running principal coordinate analysis (PCoA).",
+        "ProcrustesStatistics": "The results of running Procrustes analysis.",
+        "SampleData[Sequences]": "Collections of sequences associated with specified samples (i.e., demultiplexed sequences).",
+        "SampleData[SequencesWithQuality]": "Collections of sequences with quality scores associated with specified samples (i.e., demultiplexed sequences).",
+        "SampleData[JoinedSequencesWithQuality]": "Collections of joined paired-end sequences with quality scores associated with specified samples (i.e., demultiplexed sequences).",
+        "SampleData[PairedEndSequencesWithQuality]": "Collections of unjoined paired-end sequences with quality scores associated with specified samples (i.e., demultiplexed sequences).",
+        "SampleData[MAGs]": "",
+        "SampleData[Contigs]": "",
+        "SampleData[SingleBowtie2Index]": "",
+        "SampleData[MultiBowtie2Index]": "",
+        "SampleData[AlignmentMap]": "",
+        "FeatureData[AlignmentMap]": "",
+        "SampleData[MultiAlignmentMap]": "",
+        "ProfileHMM[PressedProtein]": "A collection of profile Hidden Markov Models for amino acid sequences in binary format and indexed.",
+        "ProfileHMM[PressedDNA]": "A collection of profile Hidden Markov Models for DNA sequences in binary format and indexed.",
+        "ProfileHMM[PressedRNA]": "A collection of profile Hidden Markov Models for RNA sequences in binary format and indexed.",
+        "ProfileHMM[SingleProtein]": "One single profile Hidden Markov Model representing a group of related proteins.",
+        "ProfileHMM[SingleDNA]": "One single profile Hidden Markov Model representing a group of related DNA sequences.",
+        "ProfileHMM[SingleRNA]": "One single profile Hidden Markov Model representing a group of related RNA sequences.",
+        "ProfileHMM[MultipleProtein]": "A collection of profile Hidden Markov Models, each representing a group of related proteins.",
+        "ProfileHMM[MultipleDNA]": "A collection of profile Hidden Markov Models, each representing a group of related DNA sequences.",
+        "ProfileHMM[MultipleRNA]": "A collection of profile Hidden Markov Models, each representing a group of related RNA sequences.",
+        "ReferenceDB[Eggnog]": "",
+        "ReferenceDB[Diamond]": "",
+        "ReferenceDB[NCBITaxonomy]": "",
+        "ReferenceDB[EggnogProteinSequences]": "",
+        "SampleData[AlphaDiversity]": "Alpha diversity values, each associated with a single sample identifier.",
+        "Phylogeny[Unrooted]": "A phylogenetic tree not containing a defined root.",
+        "Phylogeny[Rooted]": "A phylogenetic tree containing a defined root.",
+        "Hierarchy": "",
+        "Dist1D[Ordered, Independent]": "",
+        "Dist1D[Unordered, Independent]": "",
+        "Dist1D[NestedOrdered, Independent]": "",
+        "Dist1D[Unordered, Matched]": "",
+        "Dist1D[NestedUnordered, Independent]": "",
+        "Dist1D[Multi, Independent]": "",
+        "Dist1D[Ordered, Matched]": "",
+        "Dist1D[NestedOrdered, Matched]": "",
+        "Dist1D[NestedUnordered, Matched]": "",
+        "Dist1D[Multi, Matched]": "",
+        "StatsTable[Pairwise]": "",
+        "SRAMetadata": "",
+        "SRAFailedIDs": "",
+        "NCBIAccessionIDs": "",
+        "QUASTResults": ""
     }
 }
