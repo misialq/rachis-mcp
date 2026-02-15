@@ -34,6 +34,18 @@ export class RachisMCP extends McpAgent {
             }
         );
 
+        // Tool: List available distributions
+        this.server.tool(
+            "list_distributions",
+            {},
+            async () => {
+                const distributions = graph.getDistributions();
+                return {
+                    content: [{ type: "text", text: JSON.stringify(distributions, null, 2) }]
+                };
+            }
+        );
+
         // Tool: Get details for a specific action
         this.server.tool(
             "get_action_details",
