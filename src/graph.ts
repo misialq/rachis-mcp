@@ -111,6 +111,55 @@ export class KnowledgeGraph {
         return consumers;
     }
 
+    findProducers(requiredTypes: string[]) {
+        const producers: { plugin: string, action: string }[] = [];
+        
+        for (const { plugin, action, details } of this.getAllActions()) {
+            if (!details.outputs) continue;
+            
+            const actionOutputs = Object.values(details.outputs);
+            const outputUsage = new Array(actionOutputs.length).fill(0);
+            
+            let allMatched = true;
+
+            for (const reqType of requiredTypes) {
+                let matchedObj = false;
+
+                for (let i = 0; i < actionOutputs.length; i++) {
+                    const outputDef = actionOutputs[i] as any;
+                    
+                    if (outputUsage[i] > 0) continue; 
+
+                    let typeCompatible = false;
+                    if (outputDef.type) {
+                        for (const availType of outputDef.type) {
+                            if (this.checkCompatibility(availType, reqType)) {
+                                typeCompatible = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (typeCompatible) {
+                        outputUsage[i]++;
+                        matchedObj = true;
+                        break;
+                    }
+                }
+
+                if (!matchedObj) {
+                    allMatched = false;
+                    break;
+                }
+            }
+
+            if (allMatched && requiredTypes.length > 0) {
+                producers.push({ plugin, action });
+            }
+        }
+        return producers;
+    }
+
     // --- Compatibility Logic ---
     // Ported from Python: check_compatibility
     checkCompatibility(availType: string, reqType: string): boolean {
