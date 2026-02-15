@@ -145,10 +145,27 @@ export class RachisMCP extends McpAgent {
             {
                 available_types: z.array(z.string()).describe("List of currently available artifact types"),
                 target_types: z.array(z.string()).describe("List of target artifact types to produce"),
-                max_depth: z.number().optional().default(5).describe("Maximum recursion depth (default: 5)")
+                max_depth: z.number().optional().default(5).describe("Maximum recursion depth (default: 5)"),
+                allowed_plugins: z.array(z.string()).optional().describe("Optional plugin allow-list."),
+                required_plugins: z.array(z.string()).optional().describe("Optional plugins to prioritize and require in the final plan when possible."),
+                disallowed_plugins: z.array(z.string()).optional().describe("Optional plugin deny-list."),
+                disallowed_actions: z.array(z.string()).optional().describe("Optional action deny-list (plugin:action, plugin, or plugin:* selectors)."),
             },
-            async ({ available_types, target_types, max_depth }) => {
-                const plan = graph.planWorkflowMulti(available_types, target_types, max_depth);
+            async ({
+                available_types,
+                target_types,
+                max_depth,
+                allowed_plugins,
+                required_plugins,
+                disallowed_plugins,
+                disallowed_actions,
+            }) => {
+                const plan = graph.planWorkflowMulti(available_types, target_types, max_depth, {
+                    allowed_plugins,
+                    required_plugins,
+                    disallowed_plugins,
+                    disallowed_actions,
+                });
                 return { content: [{ type: "text", text: JSON.stringify(plan, null, 2) }] };
             }
         );

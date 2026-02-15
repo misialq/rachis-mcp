@@ -18,6 +18,94 @@ npm create cloudflare@latest -- my-mcp-server --template=cloudflare/ai/demos/rem
 
 To add your own [tools](https://developers.cloudflare.com/agents/model-context-protocol/tools/) to the MCP server, define each tool inside the `init()` method of `src/index.ts` using `this.server.tool(...)`.
 
+## `plan_workflow_multi` recipes
+
+Use `plan_workflow_multi` when you want constraint-aware workflow planning from multiple available artifact types.
+
+The tool returns:
+
+- `steps`: ordered action plan (`action_id`, `plugin`, `action`, `output_type`)
+- `achieved_targets`: target types that were satisfied
+- `missing_inputs`: target types that could not be satisfied
+- `assumptions` and `warnings`
+- `available_types`: final inferred type inventory after planned steps
+
+### Assembly-focused planning
+
+```json
+{
+  "available_types": [
+    "SampleData[PairedEndSequencesWithQuality]"
+  ],
+  "target_types": [
+    "SampleData[Contigs]"
+  ],
+  "allowed_plugins": [
+    "assembly",
+    "fastp",
+    "cutadapt",
+    "demux"
+  ],
+  "max_depth": 6
+}
+```
+
+### Taxonomic profiling-focused planning
+
+```json
+{
+  "available_types": [
+    "FeatureData[Sequence]"
+  ],
+  "target_types": [
+    "FeatureData[Taxonomy]"
+  ],
+  "allowed_plugins": [
+    "feature-classifier",
+    "taxa",
+    "annotate"
+  ],
+  "max_depth": 6
+}
+```
+
+### AMR-focused planning with exclusions
+
+```json
+{
+  "available_types": [
+    "SampleData[Contigs]"
+  ],
+  "target_types": [
+    "FeatureTable[Frequency]"
+  ],
+  "allowed_plugins": [
+    "amrfinderplus",
+    "resistance",
+    "taxonomy"
+  ],
+  "required_plugins": [
+    "amrfinderplus"
+  ],
+  "disallowed_plugins": [
+    "boots"
+  ],
+  "disallowed_actions": [
+    "dada2:*",
+    "deblur:*"
+  ],
+  "max_depth": 7
+}
+```
+
+Selector syntax for `disallowed_actions`:
+
+- `plugin:action` to match one action
+- `plugin:*` to match all actions in one plugin
+- `plugin` to match all actions in one plugin
+
+Tip: start with a broad plan, then tighten with `allowed_plugins`, `required_plugins`, `disallowed_plugins`, or `disallowed_actions` if the workflow is biologically off-target.
+
 ## Connect to Cloudflare AI Playground
 
 You can connect to your MCP server from the Cloudflare AI Playground, which is a remote MCP client:

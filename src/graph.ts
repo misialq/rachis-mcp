@@ -1,5 +1,11 @@
 import { Schema } from './types.js';
 import { isTypeCompatible } from './semantic-type.js';
+import {
+    type PlanningConstraints,
+    type NormalizedPlanningConstraints,
+    isActionAllowedByConstraints,
+    normalizePlanningConstraints,
+} from './planning-intent.js';
 
 // Graph Representation
 // We will not build a full graph object like NetworkX but serve queries directly from the Schema
@@ -202,7 +208,13 @@ export class KnowledgeGraph {
         return isTypeCompatible(availType, reqType);
     }
 
-    private findWorkflowFromAvailableTypes(startTypes: Set<string>, endType: string, maxDepth: number = 5): WorkflowStep[] | null {
+    private findWorkflowFromAvailableTypes(
+        startTypes: Set<string>,
+        endType: string,
+        maxDepth: number = 5,
+        constraints: NormalizedPlanningConstraints = normalizePlanningConstraints(),
+        requiredPluginPriority: Set<string> = new Set()
+    ): WorkflowStep[] | null {
         const allActions = this.getAllActions();
 
         // Helper: recursive resolver with Iterative Deepening
@@ -234,7 +246,19 @@ export class KnowledgeGraph {
             }
 
             // 3. Try to resolve inputs for each candidate
-            for (const candidate of candidates) {
+            const filteredCandidates = candidates.filter((candidate) =>
+                isActionAllowedByConstraints(`${candidate.plugin}:${candidate.action}`, candidate.plugin, constraints)
+            );
+
+            const prioritizedCandidates =
+                requiredPluginPriority.size === 0
+                    ? filteredCandidates
+                    : [
+                        ...filteredCandidates.filter((candidate) => requiredPluginPriority.has(candidate.plugin.toLowerCase())),
+                        ...filteredCandidates.filter((candidate) => !requiredPluginPriority.has(candidate.plugin.toLowerCase())),
+                    ];
+
+            for (const candidate of prioritizedCandidates) {
                 const requiredInputs = candidate.details.inputs || {};
                 let currentPlan: WorkflowStep[] = [];
                 let possible = true;
@@ -290,17 +314,30 @@ export class KnowledgeGraph {
         // Iterative Deepening
         for (let limit = 1; limit <= maxDepth; limit++) {
             const result = resolve(endType, new Set(startTypes), 0, limit, new Set());
-            if (result) return result;
+            if (result) {
+                return result;
+            }
         }
 
         return null;
     }
 
     findWorkflow(startType: string, endType: string, maxDepth: number = 5): WorkflowStep[] | null {
-        return this.findWorkflowFromAvailableTypes(new Set([startType]), endType, maxDepth);
+        return this.findWorkflowFromAvailableTypes(
+            new Set([startType]),
+            endType,
+            maxDepth,
+            normalizePlanningConstraints(),
+            new Set()
+        );
     }
 
-    planWorkflowMulti(availableTypes: string[], targetTypes: string[], maxDepth: number = 5): MultiWorkflowPlan {
+    planWorkflowMulti(
+        availableTypes: string[],
+        targetTypes: string[],
+        maxDepth: number = 5,
+        planningConstraints: PlanningConstraints = {}
+    ): MultiWorkflowPlan {
         const cleanAvailableTypes = Array.from(
             new Set(availableTypes.map((value) => value.trim()).filter((value) => value.length > 0))
         );
@@ -314,6 +351,8 @@ export class KnowledgeGraph {
         const achievedTargets: string[] = [];
         const missingInputs: string[] = [];
         const warnings: string[] = [];
+        const constraints = normalizePlanningConstraints(planningConstraints);
+        const missingRequiredPlugins = new Set(constraints.requiredPlugins);
 
         const assumptions = [
             "Compatibility checks use semantic type matching and implicit List lift (T satisfies List[T]).",
@@ -324,16 +363,35 @@ export class KnowledgeGraph {
             warnings.push("No target_types were provided.");
         }
 
+        if (constraints.allowedPlugins.size > 0) {
+            assumptions.push(`Planner restricted to allowed_plugins=[${Array.from(constraints.allowedPlugins).join(', ')}].`);
+        }
+        if (constraints.requiredPlugins.size > 0) {
+            assumptions.push(`Planner prioritizing required_plugins=[${Array.from(constraints.requiredPlugins).join(', ')}].`);
+        }
+        if (constraints.disallowedPlugins.size > 0) {
+            assumptions.push(`Planner restricted by disallowed_plugins=[${Array.from(constraints.disallowedPlugins).join(', ')}].`);
+        }
+
         for (const targetType of cleanTargetTypes) {
             if (this.hasCompatibleType(availableSet, targetType)) {
                 achievedTargets.push(targetType);
                 continue;
             }
 
-            const plan = this.findWorkflowFromAvailableTypes(new Set(availableSet), targetType, maxDepth);
+            const plan = this.findWorkflowFromAvailableTypes(
+                new Set(availableSet),
+                targetType,
+                maxDepth,
+                constraints,
+                missingRequiredPlugins
+            );
             if (!plan || plan.length === 0) {
                 missingInputs.push(targetType);
                 warnings.push(`No workflow found for target '${targetType}' within depth ${maxDepth}.`);
+                if (constraints.hasFilteringConstraints) {
+                    warnings.push(`Constraint filters may have excluded viable actions for target '${targetType}'.`);
+                }
                 continue;
             }
 
@@ -341,6 +399,7 @@ export class KnowledgeGraph {
                 if (!seenActionIds.has(step.action_id)) {
                     seenActionIds.add(step.action_id);
                     steps.push(step);
+                    missingRequiredPlugins.delete(step.plugin.toLowerCase());
                 }
                 this.addAllActionOutputs(availableSet, step);
             }
@@ -355,6 +414,9 @@ export class KnowledgeGraph {
 
         if (missingInputs.length > 0) {
             warnings.push("Plan is partial. Some target types could not be satisfied from the provided available_types.");
+        }
+        if (missingRequiredPlugins.size > 0) {
+            warnings.push(`Required plugins were not included in the final plan: ${Array.from(missingRequiredPlugins).join(', ')}.`);
         }
 
         return {

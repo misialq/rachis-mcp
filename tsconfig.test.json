@@ -12,6 +12,7 @@
 	"include": [
 		"src/action-utils.ts",
 		"src/graph.ts",
+		"src/planning-intent.ts",
 		"src/semantic-type.ts",
 		"src/types.ts",
 		"tests/**/*.ts"
