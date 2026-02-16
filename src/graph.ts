@@ -58,6 +58,10 @@ export class KnowledgeGraph {
         return Object.keys(this.schema.distributions);
     }
 
+    getType(typeName: string): string | undefined {
+        return this.schema.types[typeName];
+    }
+
     getAction(pluginName: string, actionName: string) {
         const pKey = this.findKey(this.schema.plugins, pluginName);
         if (!pKey) return undefined;

@@ -31,4 +31,5 @@ export interface Distribution {
 export interface Schema {
   plugins: Record<string, Plugin>;
   distributions: Record<string, Distribution>;
+  types: Record<string, string>;
 }

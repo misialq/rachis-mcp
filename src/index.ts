@@ -47,6 +47,23 @@ export class RachisMCP extends McpAgent {
             }
         );
 
+        // Tool: Get details for a specific semantic type
+        this.server.tool(
+            "get_type_details",
+            { type_name: z.string().describe("The name of the semantic type") },
+            async ({ type_name }) => {
+                const description = graph.getType(type_name);
+                if (description === undefined) {
+                    return {
+                        content: [{ type: "text", text: JSON.stringify({ error: `Type '${type_name}' not found.` }) }]
+                    };
+                }
+                return {
+                    content: [{ type: "text", text: description || "No description available." }]
+                };
+            }
+        );
+
         // Tool: Get details for a specific action
         this.server.tool(
             "get_action_details",
