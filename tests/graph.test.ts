@@ -51,6 +51,18 @@ const schema: Schema = {
                         result: { type: ['TypeIndexed'] },
                     },
                 },
+                metadata_splitter: {
+                    description: 'Uses metadata and regular parameters.',
+                    inputs: {},
+                    parameters: {
+                        metadata: { type: 'Metadata', required: true },
+                        sample_metadata: { type: 'MetadataColumn[Categorical]', required: false },
+                        threshold: { type: 'Int', required: false },
+                    },
+                    outputs: {
+                        result: { type: ['TypeMetadataSplit'] },
+                    },
+                },
             },
         },
         taxa: {
@@ -88,6 +100,7 @@ const schema: Schema = {
             plugins: ['planner', 'taxa', 'assembly'],
         },
     },
+    types: {},
 };
 
 const toActionIds = (actions: { plugin: string, action: string }[]) =>
@@ -120,6 +133,17 @@ test('findConsumers uses compatibility checks instead of exact matching', () => 
     );
 
     assert.equal(consumers.includes('planner:property_consumer'), true);
+});
+
+test('getAction separates metadata-typed parameters into metadata category', () => {
+    const graph = new KnowledgeGraph(schema);
+    const action = graph.getAction('planner', 'metadata_splitter');
+
+    assert.notEqual(action, undefined);
+    assert.deepEqual(Object.keys(action!.parameters).sort(), ['threshold']);
+    assert.deepEqual(Object.keys(action!.metadata || {}).sort(), ['metadata', 'sample_metadata']);
+    assert.equal(action!.parameters.metadata, undefined);
+    assert.equal(action!.parameters.sample_metadata, undefined);
 });
 
 test('findWorkflow step includes backward-compatible fields and action_id', () => {
@@ -270,6 +294,7 @@ test('findWorkflow keeps schema traversal order instead of lexicographic action 
                 plugins: ['zzz', 'aaa'],
             },
         },
+        types: {},
     };
 
     const graph = new KnowledgeGraph(traversalSchema);

@@ -17,6 +17,7 @@ export interface Action {
   description: string;
   inputs: Record<string, Input>;
   parameters: Record<string, Parameter>;
+  metadata?: Record<string, Parameter>;
   outputs: Record<string, Output>;
 }
 
