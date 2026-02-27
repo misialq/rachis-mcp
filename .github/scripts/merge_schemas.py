@@ -4,7 +4,7 @@ import os
 
 def merge_schemas(distribution_files, output_file):
     """
-    Merges multiple QIIME 2 plugin schema JSON files into a single dictionary
+    Merges multiple Rachis plugin schema JSON files into a single dictionary
     with a 'plugins' registry and a 'distributions' map.
     
     Args:

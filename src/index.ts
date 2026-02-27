@@ -20,6 +20,7 @@ export class RachisMCP extends McpAgent {
         // Tool: List all available plugins
         this.server.tool(
             "list_available_plugins",
+            "Lists all available Rachis plugins. Optionally filter by distribution name.",
             { distribution: z.string().optional().describe("Optional distribution name to filter plugins") },
             async ({ distribution }) => {
                 try {
@@ -38,6 +39,7 @@ export class RachisMCP extends McpAgent {
         // Tool: List available distributions
         this.server.tool(
             "list_distributions",
+            "Lists all available Rachis distributions.",
             {},
             async () => {
                 const distributions = graph.getDistributions();
@@ -50,6 +52,7 @@ export class RachisMCP extends McpAgent {
         // Tool: Get details for a specific semantic type
         this.server.tool(
             "get_type_details",
+            "Retrieves the description and details for a specific Rachis semantic type.",
             { type_name: z.string().describe("The name of the semantic type") },
             async ({ type_name }) => {
                 const description = graph.getType(type_name);
@@ -67,6 +70,7 @@ export class RachisMCP extends McpAgent {
         // Tool: Get details for a specific action
         this.server.tool(
             "get_action_details",
+            "Retrieves the details, inputs, outputs, and parameters for a specific Rachis plugin action.",
             { 
                 plugin_name: z.string().describe("The name of the plugin"),
                 action_name: z.string().describe("The name of the action")
@@ -85,6 +89,7 @@ export class RachisMCP extends McpAgent {
         // Tool: Find compatible actions (Inputs)
         this.server.tool(
             "find_compatible_actions",
+            "Finds all Rachis actions that accept the provided semantic type as an input.",
             { semantic_type: z.string().describe("The semantic type to find compatible actions for") },
             async ({ semantic_type }) => {
                 const compatible: string[] = [];
@@ -113,6 +118,7 @@ export class RachisMCP extends McpAgent {
         // Tool: Find consumers for a set of artifacts
         this.server.tool(
             "find_consumers",
+            "Finds actions that consume all or some of the provided artifact types as inputs.",
             {
                 types: z.array(z.string()).describe("List of artifact types to be consumed"),
                 match_mode: z.enum(["required_inputs", "strict_consumption"])
@@ -130,6 +136,7 @@ export class RachisMCP extends McpAgent {
         // Tool: Find producers for a set of artifacts
         this.server.tool(
             "find_producers",
+            "Finds actions that produce all of the specified artifact types as outputs.",
             { types: z.array(z.string()).describe("List of artifact types to be produced") },
             async ({ types }) => {
                 const producers = graph.findProducers(types);

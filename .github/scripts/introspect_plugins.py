@@ -58,7 +58,7 @@ for name, plugin in pm.plugins.items():
                                  for m in f0.members:
                                      # Recurse on member? Assume atomic Member for now or clean its string
                                      # If Member is Union, we'd need meaningful recursion but that's deeply nested.
-                                     # For QIIME 2, usually A[B|C]. B, C are atomic.
+                                     # For Rachis, usually A[B|C]. B, C are atomic.
                                      results.add(f"{outer}[{clean_name(str(m))}]")
                                  return
                     
@@ -104,7 +104,7 @@ for name, plugin in pm.plugins.items():
         for type_name, type_record in plugin.types.items():
             # type_record is likely the SemanticType class or similar
             # User wants description. 
-            # In QIIME 2, types are registered objects. 
+            # In Rachis, types are registered objects. 
             # We need to see if we can get a description.
             # If not, we just list it.
             
