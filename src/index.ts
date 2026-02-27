@@ -85,7 +85,7 @@ export class RachisMCP extends McpAgent {
         // Tool: Find compatible actions (Inputs)
         this.server.tool(
             "find_compatible_actions",
-            { semantic_type: z.string() },
+            { semantic_type: z.string().describe("The semantic type to find compatible actions for") },
             async ({ semantic_type }) => {
                 const compatible: string[] = [];
                 const allActions = graph.getAllActions();
@@ -93,9 +93,10 @@ export class RachisMCP extends McpAgent {
                 for (const { plugin, action, details } of allActions) {
                      if (!details.inputs) continue;
                      for (const input of Object.values(details.inputs)) {
-                         // input.type is string[]
-                         const types = (input as any).type as string[];
-                         if (!types) continue;
+                         // input.type is string | string[]
+                         const typeRaw = (input as any).type;
+                         if (!typeRaw) continue;
+                         const types = Array.isArray(typeRaw) ? typeRaw : [typeRaw];
                          
                          for (const t of types) {
                              if (graph.checkCompatibility(semantic_type, t)) {

@@ -122,9 +122,10 @@ export class KnowledgeGraph {
         return actions;
     }
 
-    private matchesInputType(availableType: string, inputDef: { type?: string[] }): boolean {
+    private matchesInputType(availableType: string, inputDef: { type?: any }): boolean {
         if (!inputDef.type) return false;
-        return inputDef.type.some((requiredType: string) => this.checkCompatibility(availableType, requiredType));
+        const requiredTypes = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
+        return requiredTypes.some((requiredType: string) => this.checkCompatibility(availableType, requiredType));
     }
 
     private hasCompatibleType(availableTypes: Set<string>, requiredType: string): boolean {
@@ -144,9 +145,10 @@ export class KnowledgeGraph {
         }
 
         let addedAny = false;
-        for (const outputDef of Object.values(actionDetails.outputs) as Array<{ type?: string[] }>) {
+        for (const outputDef of Object.values(actionDetails.outputs) as Array<{ type?: any }>) {
             if (!outputDef.type) continue;
-            for (const outputType of outputDef.type) {
+            const outputTypes = Array.isArray(outputDef.type) ? outputDef.type : [outputDef.type];
+            for (const outputType of outputTypes) {
                 availableTypes.add(outputType);
                 addedAny = true;
             }
@@ -168,7 +170,7 @@ export class KnowledgeGraph {
         for (const { plugin, action, details } of this.getAllActions()) {
             if (!details.inputs) continue;
 
-            const actionInputs = Object.values(details.inputs) as { type?: string[], required?: boolean }[];
+            const actionInputs = Object.values(details.inputs) as { type?: any, required?: boolean }[];
             if (actionInputs.length === 0) continue;
 
             const requiredInputs = actionInputs.filter((inputDef) => inputDef.required);
@@ -217,7 +219,8 @@ export class KnowledgeGraph {
 
                     let typeCompatible = false;
                     if (outputDef.type) {
-                        for (const availType of outputDef.type) {
+                        const outputTypes = Array.isArray(outputDef.type) ? outputDef.type : [outputDef.type];
+                        for (const availType of outputTypes) {
                             if (this.checkCompatibility(availType, reqType)) {
                                 typeCompatible = true;
                                 break;
