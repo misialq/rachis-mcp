@@ -136,56 +136,6 @@ export class RachisMCP extends McpAgent {
                 return { content: [{ type: "text", text: JSON.stringify(producerStrings, null, 2) }] };
             }
         );
-
-        // Tool: Find workflow between two semantic types
-        this.server.tool(
-            "find_workflow",
-            {
-                start_type: z.string().describe("The starting semantic type"),
-                end_type: z.string().describe("The target semantic type"),
-                max_depth: z.number().optional().default(5).describe("Maximum recursion depth (default: 5)")
-            },
-            async ({ start_type, end_type, max_depth }) => {
-                const workflow = graph.findWorkflow(start_type, end_type, max_depth);
-
-                if (!workflow) {
-                    return { content: [{ type: "text", text: JSON.stringify({ error: `No workflow found from '${start_type}' to '${end_type}' within depth ${max_depth}.` }) }] };
-                }
-
-                return { content: [{ type: "text", text: JSON.stringify(workflow, null, 2) }] };
-            }
-        );
-
-        // Tool: Plan workflow for multiple starting and target types
-        this.server.tool(
-            "plan_workflow_multi",
-            {
-                available_types: z.array(z.string()).describe("List of currently available artifact types"),
-                target_types: z.array(z.string()).describe("List of target artifact types to produce"),
-                max_depth: z.number().optional().default(5).describe("Maximum recursion depth (default: 5)"),
-                allowed_plugins: z.array(z.string()).optional().describe("Optional plugin allow-list."),
-                required_plugins: z.array(z.string()).optional().describe("Optional plugins to prioritize and require in the final plan when possible."),
-                disallowed_plugins: z.array(z.string()).optional().describe("Optional plugin deny-list."),
-                disallowed_actions: z.array(z.string()).optional().describe("Optional action deny-list (plugin:action, plugin, or plugin:* selectors)."),
-            },
-            async ({
-                available_types,
-                target_types,
-                max_depth,
-                allowed_plugins,
-                required_plugins,
-                disallowed_plugins,
-                disallowed_actions,
-            }) => {
-                const plan = graph.planWorkflowMulti(available_types, target_types, max_depth, {
-                    allowed_plugins,
-                    required_plugins,
-                    disallowed_plugins,
-                    disallowed_actions,
-                });
-                return { content: [{ type: "text", text: JSON.stringify(plan, null, 2) }] };
-            }
-        );
     }
 }
 
