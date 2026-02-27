@@ -198,10 +198,17 @@ export class KnowledgeGraph {
         return consumers;
     }
 
-    findProducers(requiredTypes: string[]) {
+    findProducers(requiredTypes: string[], filters?: { distribution?: string, plugin?: string }) {
         const producers: { plugin: string, action: string }[] = [];
+        const cleanTypes = requiredTypes.map((t) => t.trim()).filter((t) => t.length > 0);
+        const pluginFilter = this.resolveProducerPluginFilter(filters);
+
+        if (cleanTypes.length === 0) {
+            return producers;
+        }
         
         for (const { plugin, action, details } of this.getAllActions()) {
+            if (pluginFilter && !pluginFilter.has(plugin)) continue;
             if (!details.outputs) continue;
             
             const actionOutputs = Object.values(details.outputs);
@@ -209,7 +216,7 @@ export class KnowledgeGraph {
             
             let allMatched = true;
 
-            for (const reqType of requiredTypes) {
+            for (const reqType of cleanTypes) {
                 let matchedObj = false;
 
                 for (let i = 0; i < actionOutputs.length; i++) {
@@ -241,11 +248,44 @@ export class KnowledgeGraph {
                 }
             }
 
-            if (allMatched && requiredTypes.length > 0) {
+            if (allMatched) {
                 producers.push({ plugin, action });
             }
         }
         return producers;
+    }
+
+    private resolveProducerPluginFilter(filters?: { distribution?: string, plugin?: string }): Set<string> | undefined {
+        if (!filters?.distribution && !filters?.plugin) {
+            return undefined;
+        }
+
+        let scopedPlugins: Set<string> | undefined;
+        if (filters?.distribution) {
+            const distKey = this.findKey(this.schema.distributions, filters.distribution);
+            if (!distKey) {
+                throw new Error(`Distribution '${filters.distribution}' not found.`);
+            }
+
+            scopedPlugins = new Set(
+                this.schema.distributions[distKey].plugins
+                    .map((pluginName) => this.findKey(this.schema.plugins, pluginName) || pluginName)
+            );
+        }
+
+        if (filters?.plugin) {
+            const pluginKey = this.findKey(this.schema.plugins, filters.plugin);
+            if (!pluginKey) {
+                throw new Error(`Plugin '${filters.plugin}' not found.`);
+            }
+
+            if (scopedPlugins && !scopedPlugins.has(pluginKey)) {
+                return new Set();
+            }
+            return new Set([pluginKey]);
+        }
+
+        return scopedPlugins;
     }
 
     // --- Compatibility Logic ---

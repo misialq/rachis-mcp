@@ -135,6 +135,42 @@ test('findConsumers uses compatibility checks instead of exact matching', () => 
     assert.equal(consumers.includes('planner:property_consumer'), true);
 });
 
+test('findProducers filters results by distribution', () => {
+    const graph = new KnowledgeGraph(schema);
+    const producers = toActionIds(graph.findProducers(['TypeC'], { distribution: 'test' }));
+
+    assert.deepEqual(producers.sort(), ['assembly:assemble_c', 'planner:combine', 'taxa:profile']);
+});
+
+test('findProducers filters results by plugin', () => {
+    const graph = new KnowledgeGraph(schema);
+    const producers = toActionIds(graph.findProducers(['TypeC'], { plugin: 'planner' }));
+
+    assert.deepEqual(producers, ['planner:combine']);
+});
+
+test('findProducers returns empty when plugin is outside selected distribution', () => {
+    const constrainedSchema: Schema = {
+        ...schema,
+        distributions: {
+            only_taxa: {
+                plugins: ['taxa'],
+            },
+        },
+    };
+    const constrainedGraph = new KnowledgeGraph(constrainedSchema);
+    const producers = toActionIds(constrainedGraph.findProducers(['TypeC'], { distribution: 'only_taxa', plugin: 'planner' }));
+
+    assert.deepEqual(producers, []);
+});
+
+test('findProducers throws for unknown distribution or plugin filters', () => {
+    const graph = new KnowledgeGraph(schema);
+
+    assert.throws(() => graph.findProducers(['TypeC'], { distribution: 'missing' }), /Distribution 'missing' not found/);
+    assert.throws(() => graph.findProducers(['TypeC'], { plugin: 'missing_plugin' }), /Plugin 'missing_plugin' not found/);
+});
+
 test('getAction separates metadata-typed parameters into metadata category', () => {
     const graph = new KnowledgeGraph(schema);
     const action = graph.getAction('planner', 'metadata_splitter');

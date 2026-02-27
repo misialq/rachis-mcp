@@ -137,11 +137,21 @@ export class RachisMCP extends McpAgent {
         this.server.tool(
             "find_producers",
             "Finds actions that produce all of the specified artifact types as outputs.",
-            { types: z.array(z.string()).describe("List of artifact types to be produced") },
-            async ({ types }) => {
-                const producers = graph.findProducers(types);
-                const producerStrings = normalizeActionIds(producers.map((p) => toActionId(p.plugin, p.action)));
-                return { content: [{ type: "text", text: JSON.stringify(producerStrings, null, 2) }] };
+            {
+                types: z.array(z.string()).describe("List of artifact types to be produced"),
+                distribution: z.string().optional().describe("Optional distribution name to scope producer search"),
+                plugin: z.string().optional().describe("Optional plugin name to scope producer search"),
+            },
+            async ({ types, distribution, plugin }) => {
+                try {
+                    const producers = graph.findProducers(types, { distribution, plugin });
+                    const producerStrings = normalizeActionIds(producers.map((p) => toActionId(p.plugin, p.action)));
+                    return { content: [{ type: "text", text: JSON.stringify(producerStrings, null, 2) }] };
+                } catch (e: any) {
+                    return {
+                        content: [{ type: "text", text: JSON.stringify({ error: e.message }) }]
+                    };
+                }
             }
         );
     }
