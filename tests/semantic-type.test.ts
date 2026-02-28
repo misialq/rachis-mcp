@@ -11,6 +11,19 @@ test('parseSemanticType handles nested generics and properties', () => {
     assert.equal(parsed.args[0].args[0].head, 'SingleBowtie2Index');
 });
 
+test('parseSemanticType preserves quoted property values and union options on nested args', () => {
+    const quoted = parseSemanticType(`SampleData[X % Properties("paired, end", 'reads')]`);
+    const unioned = parseSemanticType(`SampleData[X % (Properties('reads') | Properties('single-end'))]`);
+
+    assert.equal(quoted.args[0].propertyOptions.length, 1);
+    assert.equal(quoted.args[0].propertyOptions[0].has('paired, end'), true);
+    assert.equal(quoted.args[0].propertyOptions[0].has('reads'), true);
+
+    assert.equal(unioned.args[0].propertyOptions.length, 2);
+    assert.equal(unioned.args[0].propertyOptions[0].has('reads'), true);
+    assert.equal(unioned.args[0].propertyOptions[1].has('single-end'), true);
+});
+
 test('isTypeCompatible matches property supersets', () => {
     const available = "SampleData[X % Properties('a', 'b')]";
     const required = "SampleData[X % Properties('a')]";
@@ -27,3 +40,20 @@ test('isTypeCompatible preserves implicit List lift behavior', () => {
     assert.equal(isTypeCompatible('FeatureData[Sequence]', 'List[FeatureData[Sequence]]'), true);
 });
 
+test('isTypeCompatible supports available-side unions', () => {
+    assert.equal(
+        isTypeCompatible('FeatureData[Sequence] | FeatureData[Taxonomy]', 'FeatureData[Taxonomy]'),
+        true
+    );
+});
+
+test('isTypeCompatible rejects missing required properties', () => {
+    assert.equal(
+        isTypeCompatible("SampleData[X % Properties('a')]", "SampleData[X % Properties('a', 'b')]"),
+        false
+    );
+});
+
+test('isTypeCompatible rejects incompatible heads', () => {
+    assert.equal(isTypeCompatible('FeatureData[Sequence]', 'FeatureTable[Frequency]'), false);
+});

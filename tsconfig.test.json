@@ -1,20 +1,33 @@
 {
-	"extends": "./tsconfig.json",
 	"compilerOptions": {
+		"target": "es2021",
+		"lib": ["es2021"],
 		"module": "commonjs",
 		"moduleResolution": "node",
+		"resolveJsonModule": true,
+		"allowJs": true,
+		"checkJs": false,
 		"noEmit": false,
 		"isolatedModules": false,
+		"allowSyntheticDefaultImports": true,
+		"forceConsistentCasingInFileNames": true,
+		"strict": true,
+		"skipLibCheck": true,
 		"outDir": ".tmp-tests",
 		"rootDir": ".",
 		"types": ["node"]
 	},
-	"include": [
+	"files": [
 		"src/action-utils.ts",
 		"src/graph.ts",
-		"src/planning-intent.ts",
+		"src/schema.json",
 		"src/semantic-type.ts",
+		"src/tool-registry.ts",
 		"src/types.ts",
-		"tests/**/*.ts"
+		"tests/action-utils.test.ts",
+		"tests/graph.test.ts",
+		"tests/index.test.ts",
+		"tests/input-type-discovery.test.ts",
+		"tests/semantic-type.test.ts"
 	]
 }
