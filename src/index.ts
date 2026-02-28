@@ -90,28 +90,70 @@ export class RachisMCP extends McpAgent {
         this.server.tool(
             "find_compatible_actions",
             "Finds all Rachis actions that accept the provided semantic type as an input.",
-            { semantic_type: z.string().describe("The semantic type to find compatible actions for") },
-            async ({ semantic_type }) => {
-                const compatible: string[] = [];
-                const allActions = graph.getAllActions();
-                
-                for (const { plugin, action, details } of allActions) {
-                     if (!details.inputs) continue;
-                     for (const input of Object.values(details.inputs)) {
-                         // input.type is string | string[]
-                         const typeRaw = (input as any).type;
-                         if (!typeRaw) continue;
-                         const types = Array.isArray(typeRaw) ? typeRaw : [typeRaw];
-                         
-                         for (const t of types) {
-                             if (graph.checkCompatibility(semantic_type, t)) {
-                                 compatible.push(toActionId(plugin, action));
-                                 break; 
-                             }
-                         }
-                     }
+            {
+                semantic_type: z.string().describe("The semantic type to find compatible actions for"),
+                distribution: z.string().optional().describe("Optional distribution name to scope the search"),
+                plugin: z.string().optional().describe("Optional plugin name to scope the search"),
+            },
+            async ({ semantic_type, distribution, plugin }) => {
+                try {
+                    const compatible = graph.findCompatibleActions(semantic_type, { distribution, plugin });
+                    return {
+                        content: [{
+                            type: "text",
+                            text: JSON.stringify(
+                                normalizeActionIds(compatible.map(({ plugin, action }) => toActionId(plugin, action))),
+                                null,
+                                2
+                            )
+                        }]
+                    };
+                } catch (e: any) {
+                    return {
+                        content: [{ type: "text", text: JSON.stringify({ error: e.message }) }]
+                    };
                 }
-                return { content: [{ type: "text", text: JSON.stringify(normalizeActionIds(compatible), null, 2) }] };
+            }
+        );
+
+        // Tool: Find input type candidates from free text
+        this.server.tool(
+            "find_input_type_candidates",
+            "Maps a free-text description of an input kind (for example 'reads' or 'contigs') to likely semantic types and the actions that can consume them.",
+            {
+                kind: z.string().describe("Free-text description of the input kind to resolve"),
+                distribution: z.string().optional().describe("Optional distribution name to scope candidate discovery"),
+                plugin: z.string().optional().describe("Optional plugin name to scope candidate discovery"),
+                limit: z.number().int().min(1).max(25).optional().default(10)
+                    .describe("Maximum number of candidate semantic types to return"),
+            },
+            async ({ kind, distribution, plugin, limit }) => {
+                try {
+                    const candidates = graph.findInputTypeCandidates(kind, { distribution, plugin, limit });
+                    return {
+                        content: [{
+                            type: "text",
+                            text: JSON.stringify({
+                                kind,
+                                candidates: candidates.map((candidate) => ({
+                                    semantic_type: candidate.semantic_type,
+                                    description: candidate.description,
+                                    score: candidate.score,
+                                    match_sources: candidate.match_sources,
+                                    matched_terms: candidate.matched_terms,
+                                    common_input_names: candidate.common_input_names,
+                                    consumers: normalizeActionIds(
+                                        candidate.consumers.map(({ plugin, action }) => toActionId(plugin, action))
+                                    ),
+                                })),
+                            }, null, 2)
+                        }]
+                    };
+                } catch (e: any) {
+                    return {
+                        content: [{ type: "text", text: JSON.stringify({ error: e.message }) }]
+                    };
+                }
             }
         );
 

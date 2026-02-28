@@ -1,5 +1,5 @@
 import type { Action, Parameter, Schema } from './types.js';
-import { isTypeCompatible } from './semantic-type.js';
+import { isTypeCompatible, parseSemanticType, type ParsedSemanticType } from './semantic-type.js';
 
 // Graph Representation
 // We will not build a full graph object like NetworkX but serve queries directly from the Schema
@@ -22,6 +22,102 @@ export interface MultiWorkflowPlan {
     warnings: string[];
     available_types: string[];
 }
+
+export interface TypeDiscoveryCandidate {
+    semantic_type: string;
+    description: string;
+    score: number;
+    match_sources: string[];
+    matched_terms: string[];
+    common_input_names: string[];
+    consumers: { plugin: string, action: string }[];
+}
+
+interface TypeUsageSummary {
+    inputNameCounts: Map<string, number>;
+    actionDescriptions: Map<string, number>;
+}
+
+const normalizeSearchText = (value: string): string =>
+    value
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .replace(/[^a-zA-Z0-9]+/g, ' ')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+
+const singularizeToken = (token: string): string => {
+    if (token.length <= 3) return token;
+    if (token.endsWith('ies') && token.length > 4) {
+        return `${token.slice(0, -3)}y`;
+    }
+    if (/(ches|shes|xes|zes|ses)$/.test(token) && token.length > 4) {
+        return token.slice(0, -2);
+    }
+    if (token.endsWith('s') && !token.endsWith('ss')) {
+        return token.slice(0, -1);
+    }
+    return token;
+};
+
+const tokenizeSearchText = (value: string): string[] => {
+    const normalized = normalizeSearchText(value);
+    if (normalized.length === 0) {
+        return [];
+    }
+
+    const tokens = normalized.split(' ').filter((token) => token.length > 1 || /^\d+$/.test(token));
+    const expanded = new Set<string>();
+
+    for (const token of tokens) {
+        expanded.add(token);
+        expanded.add(singularizeToken(token));
+    }
+
+    return [...expanded].filter((token) => token.length > 0);
+};
+
+const scoreTokenMatches = (
+    queryTokens: string[],
+    candidateTokens: Set<string>,
+    exactWeight: number,
+    fuzzyWeight: number
+): { score: number, matchedTerms: string[] } => {
+    let score = 0;
+    const matchedTerms = new Set<string>();
+
+    for (const token of queryTokens) {
+        if (candidateTokens.has(token)) {
+            score += exactWeight;
+            matchedTerms.add(token);
+            continue;
+        }
+
+        if (token.length < 4) continue;
+
+        const fuzzyMatch = [...candidateTokens].some((candidateToken) =>
+            candidateToken.length >= 4 && (candidateToken.includes(token) || token.includes(candidateToken))
+        );
+
+        if (fuzzyMatch) {
+            score += fuzzyWeight;
+            matchedTerms.add(token);
+        }
+    }
+
+    return {
+        score,
+        matchedTerms: [...matchedTerms],
+    };
+};
+
+const formatSemanticBaseType = (parsed: ParsedSemanticType): string => {
+    if (parsed.args.length === 0) {
+        return parsed.head;
+    }
+
+    return `${parsed.head}[${parsed.args.map((arg) => formatSemanticBaseType(arg)).join(', ')}]`;
+};
 
 export class KnowledgeGraph {
     private schema: Schema;
@@ -122,6 +218,55 @@ export class KnowledgeGraph {
         return actions;
     }
 
+    private getTypeDescription(typeName: string): string {
+        if (typeof this.schema.types[typeName] === 'string') {
+            return this.schema.types[typeName];
+        }
+
+        const strippedType = formatSemanticBaseType(parseSemanticType(typeName));
+        if (typeof this.schema.types[strippedType] === 'string') {
+            return this.schema.types[strippedType];
+        }
+
+        return '';
+    }
+
+    private buildTypeUsageIndex(pluginFilter?: Set<string>): Map<string, TypeUsageSummary> {
+        const usage = new Map<string, TypeUsageSummary>();
+
+        for (const { plugin, details } of this.getAllActions()) {
+            if (pluginFilter && !pluginFilter.has(plugin)) continue;
+            if (!details.inputs) continue;
+
+            for (const [inputName, inputDef] of Object.entries(details.inputs)) {
+                const rawTypes = (inputDef as { type?: string | string[] }).type;
+                if (!rawTypes) continue;
+
+                const inputTypes = Array.isArray(rawTypes) ? rawTypes : [rawTypes];
+                for (const inputType of inputTypes) {
+                    const existing = usage.get(inputType) || {
+                        inputNameCounts: new Map<string, number>(),
+                        actionDescriptions: new Map<string, number>(),
+                    };
+
+                    existing.inputNameCounts.set(inputName, (existing.inputNameCounts.get(inputName) || 0) + 1);
+
+                    const actionDescription = details.description?.trim();
+                    if (actionDescription) {
+                        existing.actionDescriptions.set(
+                            actionDescription,
+                            (existing.actionDescriptions.get(actionDescription) || 0) + 1
+                        );
+                    }
+
+                    usage.set(inputType, existing);
+                }
+            }
+        }
+
+        return usage;
+    }
+
     private matchesInputType(availableType: string, inputDef: { type?: any }): boolean {
         if (!inputDef.type) return false;
         const requiredTypes = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
@@ -202,6 +347,173 @@ export class KnowledgeGraph {
             consumers.push({ plugin, action });
         }
         return consumers;
+    }
+
+    findCompatibleActions(
+        semanticType: string,
+        filters?: { distribution?: string, plugin?: string }
+    ) {
+        const compatible: { plugin: string, action: string }[] = [];
+        const pluginFilter = this.resolvePluginFilter(filters);
+
+        for (const { plugin, action, details } of this.getAllActions()) {
+            if (pluginFilter && !pluginFilter.has(plugin)) continue;
+            if (!details.inputs) continue;
+
+            const actionInputs = Object.values(details.inputs) as Array<{ type?: string | string[] }>;
+            const matchesAnyInput = actionInputs.some((inputDef) => {
+                if (!inputDef.type) return false;
+                const requiredTypes = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
+                return requiredTypes.some((requiredType) => this.checkCompatibility(semanticType, requiredType));
+            });
+
+            if (matchesAnyInput) {
+                compatible.push({ plugin, action });
+            }
+        }
+
+        return compatible;
+    }
+
+    findInputTypeCandidates(
+        query: string,
+        filters?: { distribution?: string, plugin?: string, limit?: number }
+    ): TypeDiscoveryCandidate[] {
+        const normalizedQuery = normalizeSearchText(query);
+        const queryTokens = tokenizeSearchText(query);
+
+        if (normalizedQuery.length === 0 || queryTokens.length === 0) {
+            return [];
+        }
+
+        const pluginFilter = this.resolvePluginFilter(filters);
+        const usageIndex = this.buildTypeUsageIndex(pluginFilter);
+        const candidateTypes = new Set<string>([
+            ...Object.keys(this.schema.types),
+            ...usageIndex.keys(),
+        ]);
+        const limit = Math.max(1, filters?.limit ?? 10);
+        const candidates: TypeDiscoveryCandidate[] = [];
+
+        for (const semanticType of candidateTypes) {
+            const consumers = this.findCompatibleActions(semanticType, filters);
+            if (consumers.length === 0) continue;
+
+            const usage = usageIndex.get(semanticType);
+            const description = this.getTypeDescription(semanticType);
+            const typeTokens = new Set(tokenizeSearchText(semanticType));
+            const descriptionTokens = new Set(tokenizeSearchText(description));
+            const commonInputNames = [...(usage?.inputNameCounts.entries() || [])]
+                .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]));
+            const inputNameTokens = new Set(
+                commonInputNames.flatMap(([inputName]) => tokenizeSearchText(inputName))
+            );
+            const actionDescriptionTexts = [...(usage?.actionDescriptions.keys() || [])];
+            const actionDescriptionTokens = new Set(
+                actionDescriptionTexts.flatMap((actionDescription) => tokenizeSearchText(actionDescription))
+            );
+
+            let score = 0;
+            const matchedTerms = new Set<string>();
+            const matchSources = new Set<string>();
+
+            const typeMatches = scoreTokenMatches(queryTokens, typeTokens, 7, 3);
+            if (typeMatches.score > 0) {
+                score += typeMatches.score;
+                typeMatches.matchedTerms.forEach((term) => matchedTerms.add(term));
+                matchSources.add('type_name');
+            }
+
+            const descriptionMatches = scoreTokenMatches(queryTokens, descriptionTokens, 3, 1);
+            if (descriptionMatches.score > 0) {
+                score += descriptionMatches.score;
+                descriptionMatches.matchedTerms.forEach((term) => matchedTerms.add(term));
+                matchSources.add('type_description');
+            }
+
+            const inputNameMatches = scoreTokenMatches(queryTokens, inputNameTokens, 10, 4);
+            if (inputNameMatches.score > 0) {
+                score += inputNameMatches.score;
+                inputNameMatches.matchedTerms.forEach((term) => matchedTerms.add(term));
+                matchSources.add('input_name');
+            }
+
+            const actionDescriptionMatches = scoreTokenMatches(queryTokens, actionDescriptionTokens, 2, 1);
+            if (actionDescriptionMatches.score > 0) {
+                score += actionDescriptionMatches.score;
+                actionDescriptionMatches.matchedTerms.forEach((term) => matchedTerms.add(term));
+                matchSources.add('action_description');
+            }
+
+            const normalizedTypeName = normalizeSearchText(semanticType);
+            if (normalizedTypeName === normalizedQuery) {
+                score += 18;
+                matchSources.add('type_name_phrase');
+            } else if (normalizedTypeName.includes(normalizedQuery)) {
+                score += 10;
+                matchSources.add('type_name_phrase');
+            }
+
+            const normalizedDescription = normalizeSearchText(description);
+            if (normalizedDescription.includes(normalizedQuery)) {
+                score += 5;
+                matchSources.add('type_description_phrase');
+            }
+
+            let inputNameFrequencyBonus = 0;
+            for (const [inputName, count] of commonInputNames) {
+                const normalizedInputName = normalizeSearchText(inputName);
+                if (normalizedInputName === normalizedQuery) {
+                    score += 14;
+                    inputNameFrequencyBonus += Math.min(count, 6) * 3;
+                    matchSources.add('input_name_phrase');
+                    continue;
+                }
+
+                if (queryTokens.length > 1 && (
+                    normalizedInputName.includes(normalizedQuery) || normalizedQuery.includes(normalizedInputName)
+                )) {
+                    score += 4;
+                    inputNameFrequencyBonus += Math.min(count, 2);
+                    matchSources.add('input_name_phrase');
+                }
+            }
+
+            score += inputNameFrequencyBonus;
+
+            if (score <= 0) continue;
+
+            const dedupedConsumers = Array.from(
+                new Map(consumers.map((consumer) => [`${consumer.plugin}:${consumer.action}`, consumer])).values()
+            );
+
+            const rankedInputNames = commonInputNames
+                .sort((left, right) => {
+                    const leftMatchesQuery = normalizeSearchText(left[0]).includes(normalizedQuery) ? 1 : 0;
+                    const rightMatchesQuery = normalizeSearchText(right[0]).includes(normalizedQuery) ? 1 : 0;
+                    return rightMatchesQuery - leftMatchesQuery || right[1] - left[1] || left[0].localeCompare(right[0]);
+                })
+                .slice(0, 5)
+                .map(([inputName]) => inputName);
+
+            candidates.push({
+                semantic_type: semanticType,
+                description,
+                score,
+                match_sources: [...matchSources].sort(),
+                matched_terms: [...matchedTerms].sort(),
+                common_input_names: rankedInputNames,
+                consumers: dedupedConsumers,
+            });
+        }
+
+        return candidates
+            .sort((left, right) =>
+                right.score - left.score
+                || right.consumers.length - left.consumers.length
+                || left.semantic_type.localeCompare(right.semantic_type)
+            )
+            .slice(0, limit);
     }
 
     findProducers(requiredTypes: string[], filters?: { distribution?: string, plugin?: string }) {

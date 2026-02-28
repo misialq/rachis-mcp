@@ -18,6 +18,21 @@ npm create cloudflare@latest -- my-mcp-server --template=cloudflare/ai/demos/rem
 
 To add your own [tools](https://developers.cloudflare.com/agents/model-context-protocol/tools/) to the MCP server, define each tool inside the `init()` method of `src/index.ts` using `this.server.tool(...)`.
 
+## Input kind discovery
+
+Use `find_input_type_candidates` when the user knows the general kind of artifact they have but not the exact semantic type.
+
+Example:
+
+```json
+{
+  "kind": "reads",
+  "limit": 5
+}
+```
+
+The tool returns ranked semantic type candidates together with the actions that can consume each candidate type.
+
 ## `plan_workflow_multi` recipes
 
 Use `plan_workflow_multi` when you want constraint-aware workflow planning from multiple available artifact types.
