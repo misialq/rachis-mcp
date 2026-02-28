@@ -135,6 +135,52 @@ test('findConsumers uses compatibility checks instead of exact matching', () => 
     assert.equal(consumers.includes('planner:property_consumer'), true);
 });
 
+test('findConsumers filters results by distribution', () => {
+    const constrainedSchema: Schema = {
+        ...schema,
+        distributions: {
+            only_taxa: {
+                plugins: ['taxa'],
+            },
+        },
+    };
+    const graph = new KnowledgeGraph(constrainedSchema);
+    const consumers = toActionIds(graph.findConsumers(['TypeA'], 'required_inputs', { distribution: 'only_taxa' }));
+
+    assert.deepEqual(consumers, ['taxa:profile']);
+});
+
+test('findConsumers filters results by plugin', () => {
+    const graph = new KnowledgeGraph(schema);
+    const consumers = toActionIds(graph.findConsumers(['TypeA'], 'required_inputs', { plugin: 'planner' }));
+
+    assert.deepEqual(consumers.sort(), ['planner:convert', 'planner:derive_b']);
+});
+
+test('findConsumers returns empty when plugin is outside selected distribution', () => {
+    const constrainedSchema: Schema = {
+        ...schema,
+        distributions: {
+            only_taxa: {
+                plugins: ['taxa'],
+            },
+        },
+    };
+    const graph = new KnowledgeGraph(constrainedSchema);
+    const consumers = toActionIds(
+        graph.findConsumers(['TypeA'], 'required_inputs', { distribution: 'only_taxa', plugin: 'planner' })
+    );
+
+    assert.deepEqual(consumers, []);
+});
+
+test('findConsumers throws for unknown distribution or plugin filters', () => {
+    const graph = new KnowledgeGraph(schema);
+
+    assert.throws(() => graph.findConsumers(['TypeA'], 'required_inputs', { distribution: 'missing' }), /Distribution 'missing' not found/);
+    assert.throws(() => graph.findConsumers(['TypeA'], 'required_inputs', { plugin: 'missing_plugin' }), /Plugin 'missing_plugin' not found/);
+});
+
 test('findProducers filters results by distribution', () => {
     const graph = new KnowledgeGraph(schema);
     const producers = toActionIds(graph.findProducers(['TypeC'], { distribution: 'test' }));

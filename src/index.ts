@@ -121,15 +121,23 @@ export class RachisMCP extends McpAgent {
             "Finds actions that consume all or some of the provided artifact types as inputs.",
             {
                 types: z.array(z.string()).describe("List of artifact types to be consumed"),
+                distribution: z.string().optional().describe("Optional distribution name to scope consumer search"),
+                plugin: z.string().optional().describe("Optional plugin name to scope consumer search"),
                 match_mode: z.enum(["required_inputs", "strict_consumption"])
                     .optional()
                     .default("required_inputs")
                     .describe("Consumer matching mode. Defaults to required_inputs."),
             },
-            async ({ types, match_mode }) => {
-                const consumers = graph.findConsumers(types, match_mode);
-                const consumerStrings = normalizeActionIds(consumers.map((c) => toActionId(c.plugin, c.action)));
-                return { content: [{ type: "text", text: JSON.stringify(consumerStrings, null, 2) }] };
+            async ({ types, distribution, plugin, match_mode }) => {
+                try {
+                    const consumers = graph.findConsumers(types, match_mode, { distribution, plugin });
+                    const consumerStrings = normalizeActionIds(consumers.map((c) => toActionId(c.plugin, c.action)));
+                    return { content: [{ type: "text", text: JSON.stringify(consumerStrings, null, 2) }] };
+                } catch (e: any) {
+                    return {
+                        content: [{ type: "text", text: JSON.stringify({ error: e.message }) }]
+                    };
+                }
             }
         );
 

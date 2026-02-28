@@ -159,15 +159,21 @@ export class KnowledgeGraph {
         }
     }
 
-    findConsumers(availableTypes: string[], matchMode: 'required_inputs' | 'strict_consumption' = 'required_inputs') {
+    findConsumers(
+        availableTypes: string[],
+        matchMode: 'required_inputs' | 'strict_consumption' = 'required_inputs',
+        filters?: { distribution?: string, plugin?: string }
+    ) {
         const consumers: { plugin: string, action: string }[] = [];
         const cleanTypes = availableTypes.map((t) => t.trim()).filter((t) => t.length > 0);
+        const pluginFilter = this.resolvePluginFilter(filters);
 
         if (cleanTypes.length === 0) {
             return consumers;
         }
 
         for (const { plugin, action, details } of this.getAllActions()) {
+            if (pluginFilter && !pluginFilter.has(plugin)) continue;
             if (!details.inputs) continue;
 
             const actionInputs = Object.values(details.inputs) as { type?: any, required?: boolean }[];
@@ -201,7 +207,7 @@ export class KnowledgeGraph {
     findProducers(requiredTypes: string[], filters?: { distribution?: string, plugin?: string }) {
         const producers: { plugin: string, action: string }[] = [];
         const cleanTypes = requiredTypes.map((t) => t.trim()).filter((t) => t.length > 0);
-        const pluginFilter = this.resolveProducerPluginFilter(filters);
+        const pluginFilter = this.resolvePluginFilter(filters);
 
         if (cleanTypes.length === 0) {
             return producers;
@@ -255,7 +261,7 @@ export class KnowledgeGraph {
         return producers;
     }
 
-    private resolveProducerPluginFilter(filters?: { distribution?: string, plugin?: string }): Set<string> | undefined {
+    private resolvePluginFilter(filters?: { distribution?: string, plugin?: string }): Set<string> | undefined {
         if (!filters?.distribution && !filters?.plugin) {
             return undefined;
         }
