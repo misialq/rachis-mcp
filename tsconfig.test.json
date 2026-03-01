@@ -27,6 +27,7 @@
 		"tests/action-utils.test.ts",
 		"tests/graph.test.ts",
 		"tests/index.test.ts",
+		"tests/plan-workflow.test.ts",
 		"tests/input-type-discovery.test.ts",
 		"tests/semantic-type.test.ts"
 	]

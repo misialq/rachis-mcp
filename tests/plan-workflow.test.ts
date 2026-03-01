@@ -1,0 +1,305 @@
+import { strict as assert } from 'node:assert';
+import { test } from 'node:test';
+import { KnowledgeGraph } from '../src/graph.js';
+import type { Schema } from '../src/types.js';
+
+const schema: Schema = {
+    plugins: {
+        planner: {
+            actions: {
+                combine: {
+                    description: 'Combine two required inputs.',
+                    inputs: {
+                        left: { type: ['TypeA'], required: true },
+                        right: { type: ['TypeB'], required: true },
+                    },
+                    parameters: {},
+                    outputs: {
+                        combined: { type: ['TypeC'] },
+                    },
+                },
+                convert: {
+                    description: 'Convert TypeA to TypeTarget.',
+                    inputs: {
+                        source: { type: ['TypeA'], required: true },
+                    },
+                    parameters: {},
+                    outputs: {
+                        target: { type: ['TypeTarget'] },
+                    },
+                },
+                derive_b: {
+                    description: 'Derive TypeB from TypeA.',
+                    inputs: {
+                        source: { type: ['TypeA'], required: true },
+                    },
+                    parameters: {},
+                    outputs: {
+                        derived: { type: ['TypeB'] },
+                    },
+                },
+                refine: {
+                    description: 'Refine TypeC into TypeD.',
+                    inputs: {
+                        raw: { type: ['TypeC'], required: true },
+                    },
+                    parameters: {},
+                    outputs: {
+                        refined: { type: ['TypeD'] },
+                    },
+                },
+            },
+        },
+        taxa: {
+            actions: {
+                profile: {
+                    description: 'Taxonomic profiling from TypeA.',
+                    inputs: {
+                        sequences: { type: ['TypeA'], required: true },
+                    },
+                    parameters: {},
+                    outputs: {
+                        profile: { type: ['TypeC'] },
+                    },
+                },
+            },
+        },
+        assembly: {
+            actions: {
+                assemble_c: {
+                    description: 'Assembly workflow producing TypeC from TypeA and TypeB.',
+                    inputs: {
+                        reads: { type: ['TypeA'], required: true },
+                        support: { type: ['TypeB'], required: true },
+                    },
+                    parameters: {},
+                    outputs: {
+                        assembled: { type: ['TypeC'] },
+                    },
+                },
+            },
+        },
+    },
+    distributions: {
+        test: {
+            plugins: ['planner', 'taxa', 'assembly'],
+        },
+        only_taxa: {
+            plugins: ['taxa'],
+        },
+    },
+    types: {},
+};
+
+test('planWorkflow returns empty plan when target is already available', () => {
+    const graph = new KnowledgeGraph(schema);
+    const plan = graph.planWorkflow(['TypeA'], ['TypeA']);
+
+    assert.deepEqual(plan.steps, []);
+    assert.deepEqual(plan.achieved_targets, ['TypeA']);
+    assert.deepEqual(plan.missing_inputs, []);
+    assert.deepEqual(plan.warnings, []);
+});
+
+test('planWorkflow finds a single-step path', () => {
+    const graph = new KnowledgeGraph(schema);
+    const plan = graph.planWorkflow(['TypeA'], ['TypeTarget']);
+
+    assert.equal(plan.steps.length, 1);
+    assert.equal(plan.steps[0].action_id, 'planner:convert');
+    assert.equal(plan.steps[0].output_type, 'TypeTarget');
+    assert.deepEqual(plan.achieved_targets, ['TypeTarget']);
+    assert.deepEqual(plan.missing_inputs, []);
+});
+
+test('planWorkflow finds a multi-step path through intermediate types', () => {
+    const graph = new KnowledgeGraph(schema);
+    // TypeA → derive_b → TypeB, then TypeA + TypeB → combine → TypeC
+    const plan = graph.planWorkflow(['TypeA'], ['TypeC']);
+    const actionIds = plan.steps.map((s) => s.action_id);
+
+    assert.deepEqual(plan.achieved_targets, ['TypeC']);
+    assert.deepEqual(plan.missing_inputs, []);
+    // Must include a step that produces TypeC
+    assert.ok(
+        plan.steps.some((s) => s.output_type === 'TypeC'),
+        'Should include a step producing TypeC'
+    );
+});
+
+test('planWorkflow finds a three-step path', () => {
+    const graph = new KnowledgeGraph(schema);
+    // TypeA → derive_b → TypeB, TypeA+TypeB → combine → TypeC, TypeC → refine → TypeD
+    const plan = graph.planWorkflow(['TypeA'], ['TypeD']);
+    const actionIds = plan.steps.map((s) => s.action_id);
+
+    assert.deepEqual(plan.achieved_targets, ['TypeD']);
+    assert.deepEqual(plan.missing_inputs, []);
+    assert.ok(actionIds.includes('planner:refine'), 'Should include refine step');
+    // refine requires TypeC, which requires derive_b + combine (or taxa:profile)
+    assert.ok(plan.steps.length >= 2, 'Should have at least 2 steps');
+});
+
+test('planWorkflow reports unreachable targets', () => {
+    const graph = new KnowledgeGraph(schema);
+    const plan = graph.planWorkflow(['TypeA'], ['TypeNonexistent']);
+
+    assert.deepEqual(plan.achieved_targets, []);
+    assert.deepEqual(plan.missing_inputs, ['TypeNonexistent']);
+    assert.ok(plan.warnings.length > 0);
+});
+
+test('planWorkflow handles multiple targets', () => {
+    const graph = new KnowledgeGraph(schema);
+    const plan = graph.planWorkflow(['TypeA'], ['TypeTarget', 'TypeB']);
+
+    assert.deepEqual(plan.achieved_targets.sort(), ['TypeB', 'TypeTarget']);
+    assert.deepEqual(plan.missing_inputs, []);
+    const actionIds = plan.steps.map((s) => s.action_id);
+    assert.ok(actionIds.includes('planner:convert'));
+    assert.ok(actionIds.includes('planner:derive_b'));
+});
+
+test('planWorkflow handles mix of achievable and unreachable targets', () => {
+    const graph = new KnowledgeGraph(schema);
+    const plan = graph.planWorkflow(['TypeA'], ['TypeTarget', 'TypeNonexistent']);
+
+    assert.deepEqual(plan.achieved_targets, ['TypeTarget']);
+    assert.deepEqual(plan.missing_inputs, ['TypeNonexistent']);
+    assert.ok(plan.warnings.length > 0);
+});
+
+test('planWorkflow respects distribution filter', () => {
+    const graph = new KnowledgeGraph(schema);
+    // only_taxa distribution only has taxa plugin, which can do TypeA → TypeC via profile
+    const plan = graph.planWorkflow(['TypeA'], ['TypeC'], { distribution: 'only_taxa' });
+
+    assert.deepEqual(plan.achieved_targets, ['TypeC']);
+    assert.equal(plan.steps.length, 1);
+    assert.equal(plan.steps[0].action_id, 'taxa:profile');
+});
+
+test('planWorkflow respects plugin filter', () => {
+    const graph = new KnowledgeGraph(schema);
+    const plan = graph.planWorkflow(['TypeA'], ['TypeC'], { plugin: 'taxa' });
+
+    assert.deepEqual(plan.achieved_targets, ['TypeC']);
+    assert.equal(plan.steps.length, 1);
+    assert.equal(plan.steps[0].action_id, 'taxa:profile');
+});
+
+test('planWorkflow respects max_depth limit', () => {
+    const graph = new KnowledgeGraph(schema);
+    // With maxDepth=1, we can discover actions at depth 0 only
+    // derive_b runs at depth 0 (input TypeA available), producing TypeB
+    // combine needs TypeA+TypeB, both available after depth 0 → runs at depth 1
+    // refine needs TypeC → runs at depth 2
+    // So maxDepth=1 should NOT reach TypeD
+    const plan = graph.planWorkflow(['TypeA'], ['TypeD'], { maxDepth: 1 });
+
+    assert.deepEqual(plan.missing_inputs, ['TypeD']);
+});
+
+test('planWorkflow steps are in topological order', () => {
+    const graph = new KnowledgeGraph(schema);
+    const plan = graph.planWorkflow(['TypeA'], ['TypeD']);
+
+    // Each step should only depend on types available from earlier steps or from inputs
+    const available = new Set(['TypeA']);
+    for (const step of plan.steps) {
+        const action = graph.getAction(step.plugin, step.action);
+        assert.ok(action, `Action ${step.action_id} should exist`);
+
+        for (const inputDef of Object.values(action!.inputs)) {
+            if (!inputDef.required) continue;
+            const inputTypes = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
+            const satisfied = inputTypes.some((t: string) =>
+                [...available].some((a) => graph.checkCompatibility(a, t))
+            );
+            assert.ok(satisfied, `Step ${step.action_id} input should be satisfied by prior steps`);
+        }
+
+        // Add outputs of this step
+        if (action!.outputs) {
+            for (const outputDef of Object.values(action!.outputs)) {
+                const types = Array.isArray(outputDef.type) ? outputDef.type : [outputDef.type];
+                for (const t of types) available.add(t);
+            }
+        }
+    }
+});
+
+test('planWorkflow available_types includes all outputs from plan steps', () => {
+    const graph = new KnowledgeGraph(schema);
+    const plan = graph.planWorkflow(['TypeA'], ['TypeD']);
+
+    assert.ok(plan.available_types.includes('TypeA'), 'Should include starting type');
+    assert.ok(plan.available_types.includes('TypeD'), 'Should include target type');
+});
+
+test('planWorkflow returns empty steps and warnings for empty inputs', () => {
+    const graph = new KnowledgeGraph(schema);
+    const plan = graph.planWorkflow([], ['TypeTarget']);
+
+    assert.deepEqual(plan.steps, []);
+    assert.ok(plan.warnings.length > 0);
+});
+
+test('planWorkflow throws for unknown distribution', () => {
+    const graph = new KnowledgeGraph(schema);
+    assert.throws(
+        () => graph.planWorkflow(['TypeA'], ['TypeC'], { distribution: 'nonexistent' }),
+        /Distribution 'nonexistent' not found/
+    );
+});
+
+test('planWorkflow throws for unknown plugin', () => {
+    const graph = new KnowledgeGraph(schema);
+    assert.throws(
+        () => graph.planWorkflow(['TypeA'], ['TypeC'], { plugin: 'nonexistent' }),
+        /Plugin 'nonexistent' not found/
+    );
+});
+
+test('planWorkflow uses type compatibility, not just exact string matching', () => {
+    const compatSchema: Schema = {
+        plugins: {
+            indexer: {
+                actions: {
+                    build_index: {
+                        description: 'Build an index.',
+                        inputs: {
+                            contigs: { type: ['SampleData[Contigs]'], required: true },
+                        },
+                        parameters: {},
+                        outputs: {
+                            index: { type: ["SampleData[SingleBowtie2Index % Properties('contigs')]"] },
+                        },
+                    },
+                    use_index: {
+                        description: 'Use an index with contigs property.',
+                        inputs: {
+                            index: {
+                                type: ["SampleData[SingleBowtie2Index % Properties('contigs')]"],
+                                required: true,
+                            },
+                        },
+                        parameters: {},
+                        outputs: {
+                            result: { type: ['TypeResult'] },
+                        },
+                    },
+                },
+            },
+        },
+        distributions: {},
+        types: {},
+    };
+    const graph = new KnowledgeGraph(compatSchema);
+    const plan = graph.planWorkflow(['SampleData[Contigs]'], ['TypeResult']);
+
+    assert.deepEqual(plan.achieved_targets, ['TypeResult']);
+    assert.equal(plan.steps.length, 2);
+    assert.equal(plan.steps[0].action_id, 'indexer:build_index');
+    assert.equal(plan.steps[1].action_id, 'indexer:use_index');
+});

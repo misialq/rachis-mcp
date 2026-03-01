@@ -1,5 +1,6 @@
 import type { Action, Parameter, Schema } from './types.js';
 import { isTypeCompatible, parseSemanticType, type ParsedSemanticType } from './semantic-type.js';
+import { toActionId } from './action-utils.js';
 
 // Graph Representation
 // We will not build a full graph object like NetworkX but serve queries directly from the Schema
@@ -571,6 +572,202 @@ export class KnowledgeGraph {
             }
         }
         return producers;
+    }
+
+    planWorkflow(
+        from: string[],
+        to: string[],
+        filters?: { distribution?: string, plugin?: string, maxDepth?: number }
+    ): MultiWorkflowPlan {
+        const maxDepth = Math.min(filters?.maxDepth ?? 10, 50);
+        const pluginFilter = this.resolvePluginFilter(filters);
+        const startTypes = new Set(from.map((t) => t.trim()).filter((t) => t.length > 0));
+        const targetTypes = to.map((t) => t.trim()).filter((t) => t.length > 0);
+
+        if (startTypes.size === 0 || targetTypes.length === 0) {
+            return {
+                steps: [],
+                achieved_targets: [],
+                missing_inputs: [...targetTypes],
+                assumptions: [],
+                warnings: ['No input or target types provided.'],
+                available_types: [...startTypes],
+            };
+        }
+
+        // Check which targets are already achievable from starting types
+        if (targetTypes.every((t) => this.hasCompatibleType(startTypes, t))) {
+            return {
+                steps: [],
+                achieved_targets: [...targetTypes],
+                missing_inputs: [],
+                assumptions: [],
+                warnings: [],
+                available_types: [...startTypes],
+            };
+        }
+
+        // Phase 1: Forward BFS — discover which types become available at each depth
+        const availableTypes = new Set(startTypes);
+        const producerOf = new Map<string, { plugin: string, action: string, depth: number }>();
+        const usedActions = new Set<string>();
+
+        for (let depth = 0; depth < maxDepth; depth++) {
+            const newTypes = new Map<string, { plugin: string, action: string }>();
+
+            for (const { plugin, action, details } of this.getAllActions()) {
+                if (pluginFilter && !pluginFilter.has(plugin)) continue;
+                const key = toActionId(plugin, action);
+                if (usedActions.has(key)) continue;
+                if (!details.inputs) continue;
+
+                const requiredInputs = Object.values(details.inputs)
+                    .filter((inputDef) => inputDef.required);
+                const allSatisfied = requiredInputs.every((inputDef) => {
+                    const types = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
+                    return types.some((reqType: string) => this.hasCompatibleType(availableTypes, reqType));
+                });
+                if (!allSatisfied) continue;
+
+                usedActions.add(key);
+
+                if (details.outputs) {
+                    for (const outputDef of Object.values(details.outputs)) {
+                        const outputTypes = Array.isArray(outputDef.type) ? outputDef.type : [outputDef.type];
+                        for (const outputType of outputTypes) {
+                            if (!availableTypes.has(outputType) && !newTypes.has(outputType)) {
+                                newTypes.set(outputType, { plugin, action });
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (newTypes.size === 0) break;
+
+            for (const [outputType, producer] of newTypes) {
+                availableTypes.add(outputType);
+                producerOf.set(outputType, { ...producer, depth });
+            }
+
+            if (targetTypes.every((t) => this.hasCompatibleType(availableTypes, t))) break;
+        }
+
+        // Phase 2: Backward reconstruction — trace from each target back to starting types
+        const achievedTargets: string[] = [];
+        const missingInputs: string[] = [];
+        const neededActions = new Map<
+            string,
+            { plugin: string, action: string, depth: number, outputType: string }
+        >();
+
+        for (const target of targetTypes) {
+            if (this.hasCompatibleType(startTypes, target)) {
+                achievedTargets.push(target);
+                continue;
+            }
+
+            const producedType = this.findCompatibleProducedType(target, producerOf);
+            if (!producedType) {
+                missingInputs.push(target);
+                continue;
+            }
+
+            achievedTargets.push(target);
+            this.traceBackward(producedType, startTypes, producerOf, neededActions);
+        }
+
+        // Build steps sorted by depth (topological order)
+        const steps: WorkflowStep[] = [...neededActions.values()]
+            .sort((a, b) => a.depth - b.depth)
+            .map(({ plugin, action, outputType }) => ({
+                action_id: toActionId(plugin, action),
+                plugin,
+                action,
+                output_type: outputType,
+            }));
+
+        // Compute available types after running just the plan steps
+        const planAvailableTypes = new Set(startTypes);
+        for (const step of steps) {
+            this.addAllActionOutputs(planAvailableTypes, step);
+        }
+
+        const warnings: string[] = [];
+        if (missingInputs.length > 0) {
+            warnings.push(`Could not find a path to produce: ${missingInputs.join(', ')}`);
+        }
+
+        return {
+            steps,
+            achieved_targets: achievedTargets,
+            missing_inputs: missingInputs,
+            assumptions: [],
+            warnings,
+            available_types: [...planAvailableTypes].sort(),
+        };
+    }
+
+    private findCompatibleProducedType(
+        target: string,
+        producerOf: Map<string, { plugin: string, action: string, depth: number }>
+    ): string | null {
+        if (producerOf.has(target)) return target;
+        for (const [type] of producerOf) {
+            if (this.checkCompatibility(type, target)) return type;
+        }
+        return null;
+    }
+
+    private traceBackward(
+        type: string,
+        startTypes: Set<string>,
+        producerOf: Map<string, { plugin: string, action: string, depth: number }>,
+        neededActions: Map<string, { plugin: string, action: string, depth: number, outputType: string }>
+    ): void {
+        const visited = new Set<string>();
+        const queue: string[] = [type];
+
+        while (queue.length > 0) {
+            const current = queue.shift()!;
+            if (visited.has(current)) continue;
+            visited.add(current);
+
+            if (this.hasCompatibleType(startTypes, current)) continue;
+
+            const producer = producerOf.get(current);
+            if (!producer) continue;
+
+            const key = toActionId(producer.plugin, producer.action);
+            if (neededActions.has(key)) continue;
+
+            neededActions.set(key, { ...producer, outputType: current });
+
+            const actionDetails = this.getAction(producer.plugin, producer.action);
+            if (!actionDetails?.inputs) continue;
+
+            for (const inputDef of Object.values(actionDetails.inputs)) {
+                if (!inputDef.required) continue;
+
+                const acceptedTypes = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
+
+                if (acceptedTypes.some((reqType: string) => this.hasCompatibleType(startTypes, reqType))) {
+                    continue;
+                }
+
+                for (const reqType of acceptedTypes) {
+                    let found = false;
+                    for (const [producedType] of producerOf) {
+                        if (this.checkCompatibility(producedType, reqType)) {
+                            queue.push(producedType);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) break;
+                }
+            }
+        }
     }
 
     private resolvePluginFilter(filters?: { distribution?: string, plugin?: string }): Set<string> | undefined {

@@ -142,6 +142,55 @@ export const registerRachisTools = (server: ToolRegistrar, graph: KnowledgeGraph
     );
 
     server.tool(
+        'plan_workflow',
+        'Given a set of starting artifact types and target artifact types, finds a step-by-step workflow path connecting them through intermediate actions. Returns an ordered plan of actions to execute.',
+        {
+            from: z.array(z.string()).describe('List of artifact types available as starting inputs'),
+            to: z.array(z.string()).describe('List of target artifact types to produce'),
+            distribution: z.string().optional().describe('Optional distribution name to scope the search'),
+            plugin: z.string().optional().describe('Optional plugin name to scope the search'),
+            max_depth: z.number().int().min(1).max(50).optional().default(10)
+                .describe('Maximum number of BFS depth levels to explore'),
+        },
+        async ({
+            from,
+            to,
+            distribution,
+            plugin,
+            max_depth,
+        }: {
+            from: string[],
+            to: string[],
+            distribution?: string,
+            plugin?: string,
+            max_depth: number,
+        }) => {
+            try {
+                const plan = graph.planWorkflow(from, to, { distribution, plugin, maxDepth: max_depth });
+                return {
+                    content: [{
+                        type: 'text',
+                        text: JSON.stringify({
+                            steps: plan.steps.map((step) => ({
+                                action_id: step.action_id,
+                                output_type: step.output_type,
+                            })),
+                            achieved_targets: plan.achieved_targets,
+                            missing_inputs: plan.missing_inputs,
+                            warnings: plan.warnings,
+                            available_types: plan.available_types,
+                        }, null, 2)
+                    }]
+                };
+            } catch (e: any) {
+                return {
+                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }]
+                };
+            }
+        }
+    );
+
+    server.tool(
         'find_consumers',
         'Finds actions that consume all or some of the provided artifact types as inputs.',
         {
