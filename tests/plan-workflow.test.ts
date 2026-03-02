@@ -179,15 +179,6 @@ test('planWorkflow respects distribution filter', () => {
     assert.equal(plan.steps[0].action_id, 'taxa:profile');
 });
 
-test('planWorkflow respects plugin filter', () => {
-    const graph = new KnowledgeGraph(schema);
-    const plan = graph.planWorkflow(['TypeA'], ['TypeC'], { plugin: 'taxa' });
-
-    assert.deepEqual(plan.achieved_targets, ['TypeC']);
-    assert.equal(plan.steps.length, 1);
-    assert.equal(plan.steps[0].action_id, 'taxa:profile');
-});
-
 test('planWorkflow respects max_depth limit', () => {
     const graph = new KnowledgeGraph(schema);
     // With maxDepth=1, we can discover actions at depth 0 only
@@ -253,14 +244,6 @@ test('planWorkflow throws for unknown distribution', () => {
     );
 });
 
-test('planWorkflow throws for unknown plugin', () => {
-    const graph = new KnowledgeGraph(schema);
-    assert.throws(
-        () => graph.planWorkflow(['TypeA'], ['TypeC'], { plugin: 'nonexistent' }),
-        /Plugin 'nonexistent' not found/
-    );
-});
-
 test('planWorkflow uses type compatibility, not just exact string matching', () => {
     const compatSchema: Schema = {
         plugins: {
@@ -302,4 +285,82 @@ test('planWorkflow uses type compatibility, not just exact string matching', () 
     assert.equal(plan.steps.length, 2);
     assert.equal(plan.steps[0].action_id, 'indexer:build_index');
     assert.equal(plan.steps[1].action_id, 'indexer:use_index');
+});
+
+test('planWorkflow exclude_plugins removes plugins from consideration', () => {
+    const graph = new KnowledgeGraph(schema);
+    // Without exclusion, taxa:profile provides a single-step path to TypeC
+    // Excluding taxa forces the planner to go through derive_b + combine
+    const plan = graph.planWorkflow(['TypeA'], ['TypeC'], { excludePlugins: ['taxa'] });
+
+    assert.deepEqual(plan.achieved_targets, ['TypeC']);
+    const actionIds = plan.steps.map((s) => s.action_id);
+    assert.ok(!actionIds.includes('taxa:profile'), 'taxa:profile should be excluded');
+    assert.ok(actionIds.includes('planner:derive_b'), 'Should use derive_b for TypeB');
+    assert.ok(
+        actionIds.includes('planner:combine') || actionIds.includes('assembly:assemble_c'),
+        'Should use combine or assemble_c for TypeC'
+    );
+});
+
+test('planWorkflow exclude_plugins can make targets unreachable', () => {
+    const graph = new KnowledgeGraph(schema);
+    // Exclude all plugins that can produce TypeTarget (only planner:convert does)
+    const plan = graph.planWorkflow(['TypeA'], ['TypeTarget'], { excludePlugins: ['planner'] });
+
+    assert.deepEqual(plan.achieved_targets, []);
+    assert.deepEqual(plan.missing_inputs, ['TypeTarget']);
+});
+
+test('planWorkflow include_plugins prefers listed plugins', () => {
+    const graph = new KnowledgeGraph(schema);
+    // Prefer taxa plugin — taxa:profile can do TypeA → TypeC in one step
+    const plan = graph.planWorkflow(['TypeA'], ['TypeC'], { includePlugins: ['taxa'] });
+
+    assert.deepEqual(plan.achieved_targets, ['TypeC']);
+    assert.equal(plan.steps.length, 1);
+    assert.equal(plan.steps[0].action_id, 'taxa:profile');
+});
+
+test('planWorkflow include_plugins pulls in dependency plugins when needed', () => {
+    const graph = new KnowledgeGraph(schema);
+    // Prefer assembly — it needs TypeA + TypeB, TypeB can only come from planner:derive_b
+    // The planner dependency should still be pulled in to satisfy the requirement
+    const plan = graph.planWorkflow(['TypeA'], ['TypeC'], { includePlugins: ['assembly'] });
+
+    assert.deepEqual(plan.achieved_targets, ['TypeC']);
+    const actionIds = plan.steps.map((s) => s.action_id);
+    assert.ok(actionIds.includes('assembly:assemble_c'), 'Should prefer assembly:assemble_c');
+    assert.ok(actionIds.includes('planner:derive_b'), 'Should pull in planner:derive_b as dependency');
+});
+
+test('planWorkflow include and exclude can be combined', () => {
+    const graph = new KnowledgeGraph(schema);
+    // Prefer planner and taxa, but exclude taxa from BFS
+    // Result: taxa actions not available, planner actions preferred
+    const plan = graph.planWorkflow(['TypeA'], ['TypeC'], {
+        includePlugins: ['planner', 'taxa'],
+        excludePlugins: ['taxa'],
+    });
+
+    assert.deepEqual(plan.achieved_targets, ['TypeC']);
+    const actionIds = plan.steps.map((s) => s.action_id);
+    assert.ok(!actionIds.some((id) => id.startsWith('taxa:')), 'No taxa actions');
+    assert.ok(actionIds.includes('planner:combine'), 'Should use planner:combine');
+});
+
+test('planWorkflow throws for unknown plugin in exclude_plugins', () => {
+    const graph = new KnowledgeGraph(schema);
+    assert.throws(
+        () => graph.planWorkflow(['TypeA'], ['TypeC'], { excludePlugins: ['nonexistent'] }),
+        /Plugin 'nonexistent' not found/
+    );
+});
+
+test('planWorkflow throws for unknown plugin in include_plugins', () => {
+    const graph = new KnowledgeGraph(schema);
+    assert.throws(
+        () => graph.planWorkflow(['TypeA'], ['TypeC'], { includePlugins: ['nonexistent'] }),
+        /Plugin 'nonexistent' not found/
+    );
 });

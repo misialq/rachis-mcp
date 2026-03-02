@@ -148,7 +148,10 @@ export const registerRachisTools = (server: ToolRegistrar, graph: KnowledgeGraph
             from: z.array(z.string()).describe('List of artifact types available as starting inputs'),
             to: z.array(z.string()).describe('List of target artifact types to produce'),
             distribution: z.string().optional().describe('Optional distribution name to scope the search'),
-            plugin: z.string().optional().describe('Optional plugin name to scope the search'),
+            include_plugins: z.array(z.string()).optional()
+                .describe('Prefer actions from these plugins in the plan. Dependency plugins are still used when needed.'),
+            exclude_plugins: z.array(z.string()).optional()
+                .describe('Exclude actions from these plugins (blocklist)'),
             max_depth: z.number().int().min(1).max(50).optional().default(10)
                 .describe('Maximum number of BFS depth levels to explore'),
         },
@@ -156,17 +159,24 @@ export const registerRachisTools = (server: ToolRegistrar, graph: KnowledgeGraph
             from,
             to,
             distribution,
-            plugin,
+            include_plugins,
+            exclude_plugins,
             max_depth,
         }: {
             from: string[],
             to: string[],
             distribution?: string,
-            plugin?: string,
+            include_plugins?: string[],
+            exclude_plugins?: string[],
             max_depth: number,
         }) => {
             try {
-                const plan = graph.planWorkflow(from, to, { distribution, plugin, maxDepth: max_depth });
+                const plan = graph.planWorkflow(from, to, {
+                    distribution,
+                    includePlugins: include_plugins,
+                    excludePlugins: exclude_plugins,
+                    maxDepth: max_depth,
+                });
                 return {
                     content: [{
                         type: 'text',

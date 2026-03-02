@@ -577,10 +577,16 @@ export class KnowledgeGraph {
     planWorkflow(
         from: string[],
         to: string[],
-        filters?: { distribution?: string, plugin?: string, maxDepth?: number }
+        filters?: {
+            distribution?: string,
+            maxDepth?: number,
+            includePlugins?: string[],
+            excludePlugins?: string[],
+        }
     ): MultiWorkflowPlan {
         const maxDepth = Math.min(filters?.maxDepth ?? 10, 50);
-        const pluginFilter = this.resolvePluginFilter(filters);
+        const bfsPluginFilter = this.resolveBfsPluginFilter(filters);
+        const includePreference = this.resolveIncludePreference(filters);
         const startTypes = new Set(from.map((t) => t.trim()).filter((t) => t.length > 0));
         const targetTypes = to.map((t) => t.trim()).filter((t) => t.length > 0);
 
@@ -609,14 +615,14 @@ export class KnowledgeGraph {
 
         // Phase 1: Forward BFS — discover which types become available at each depth
         const availableTypes = new Set(startTypes);
-        const producerOf = new Map<string, { plugin: string, action: string, depth: number }>();
         const usedActions = new Set<string>();
+        const actionDepth = new Map<string, number>();
 
         for (let depth = 0; depth < maxDepth; depth++) {
-            const newTypes = new Map<string, { plugin: string, action: string }>();
+            const newTypes = new Set<string>();
 
             for (const { plugin, action, details } of this.getAllActions()) {
-                if (pluginFilter && !pluginFilter.has(plugin)) continue;
+                if (bfsPluginFilter && !bfsPluginFilter.has(plugin)) continue;
                 const key = toActionId(plugin, action);
                 if (usedActions.has(key)) continue;
                 if (!details.inputs) continue;
@@ -630,13 +636,14 @@ export class KnowledgeGraph {
                 if (!allSatisfied) continue;
 
                 usedActions.add(key);
+                actionDepth.set(key, depth);
 
                 if (details.outputs) {
                     for (const outputDef of Object.values(details.outputs)) {
                         const outputTypes = Array.isArray(outputDef.type) ? outputDef.type : [outputDef.type];
                         for (const outputType of outputTypes) {
-                            if (!availableTypes.has(outputType) && !newTypes.has(outputType)) {
-                                newTypes.set(outputType, { plugin, action });
+                            if (!availableTypes.has(outputType)) {
+                                newTypes.add(outputType);
                             }
                         }
                     }
@@ -645,15 +652,18 @@ export class KnowledgeGraph {
 
             if (newTypes.size === 0) break;
 
-            for (const [outputType, producer] of newTypes) {
+            for (const outputType of newTypes) {
                 availableTypes.add(outputType);
-                producerOf.set(outputType, { ...producer, depth });
             }
 
-            if (targetTypes.every((t) => this.hasCompatibleType(availableTypes, t))) break;
+            // When include_plugins is set, continue BFS to discover preferred plugin
+            // actions even after all targets are reachable via other plugins
+            if (!includePreference && targetTypes.every((t) => this.hasCompatibleType(availableTypes, t))) break;
         }
 
         // Phase 2: Backward reconstruction — trace from each target back to starting types
+        // Uses plan-aware producer selection: prefers actions whose inputs are already
+        // satisfied by the current plan, avoiding contrived paths through unrelated actions.
         const achievedTargets: string[] = [];
         const missingInputs: string[] = [];
         const neededActions = new Map<
@@ -667,14 +677,13 @@ export class KnowledgeGraph {
                 continue;
             }
 
-            const producedType = this.findCompatibleProducedType(target, producerOf);
-            if (!producedType) {
+            if (!this.hasCompatibleType(availableTypes, target)) {
                 missingInputs.push(target);
                 continue;
             }
 
             achievedTargets.push(target);
-            this.traceBackward(producedType, startTypes, producerOf, neededActions);
+            this.traceBackward(target, startTypes, usedActions, actionDepth, bfsPluginFilter, includePreference, neededActions);
         }
 
         // Build steps sorted by depth (topological order)
@@ -708,25 +717,17 @@ export class KnowledgeGraph {
         };
     }
 
-    private findCompatibleProducedType(
-        target: string,
-        producerOf: Map<string, { plugin: string, action: string, depth: number }>
-    ): string | null {
-        if (producerOf.has(target)) return target;
-        for (const [type] of producerOf) {
-            if (this.checkCompatibility(type, target)) return type;
-        }
-        return null;
-    }
-
     private traceBackward(
-        type: string,
+        targetType: string,
         startTypes: Set<string>,
-        producerOf: Map<string, { plugin: string, action: string, depth: number }>,
+        usedActions: Set<string>,
+        actionDepth: Map<string, number>,
+        bfsPluginFilter: Set<string> | undefined,
+        includePreference: Set<string> | undefined,
         neededActions: Map<string, { plugin: string, action: string, depth: number, outputType: string }>
     ): void {
         const visited = new Set<string>();
-        const queue: string[] = [type];
+        const queue: string[] = [targetType];
 
         while (queue.length > 0) {
             const current = queue.shift()!;
@@ -735,39 +736,144 @@ export class KnowledgeGraph {
 
             if (this.hasCompatibleType(startTypes, current)) continue;
 
-            const producer = producerOf.get(current);
-            if (!producer) continue;
+            const best = this.selectBestProducer(
+                (t) => this.checkCompatibility(t, current),
+                startTypes, usedActions, actionDepth, bfsPluginFilter, includePreference, neededActions
+            );
+            if (!best) continue;
 
-            const key = toActionId(producer.plugin, producer.action);
+            const key = toActionId(best.plugin, best.action);
             if (neededActions.has(key)) continue;
 
-            neededActions.set(key, { ...producer, outputType: current });
+            neededActions.set(key, {
+                plugin: best.plugin,
+                action: best.action,
+                depth: best.depth,
+                outputType: current,
+            });
 
-            const actionDetails = this.getAction(producer.plugin, producer.action);
+            const actionDetails = this.getAction(best.plugin, best.action);
             if (!actionDetails?.inputs) continue;
+
+            const currentDepth = best.depth;
 
             for (const inputDef of Object.values(actionDetails.inputs)) {
                 if (!inputDef.required) continue;
 
                 const acceptedTypes = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
 
-                if (acceptedTypes.some((reqType: string) => this.hasCompatibleType(startTypes, reqType))) {
+                if (acceptedTypes.some((t: string) => this.hasCompatibleType(startTypes, t))) {
                     continue;
                 }
 
-                for (const reqType of acceptedTypes) {
-                    let found = false;
-                    for (const [producedType] of producerOf) {
-                        if (this.checkCompatibility(producedType, reqType)) {
-                            queue.push(producedType);
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (found) break;
+                // Only consider outputs from actions at earlier depths to avoid
+                // circular dependencies (an action's own outputs satisfying its inputs)
+                const planAvailable = this.computePlanAvailableTypes(startTypes, neededActions, currentDepth);
+                if (acceptedTypes.some((t: string) => this.hasCompatibleType(planAvailable, t))) {
+                    continue;
+                }
+
+                const inputMatch = this.selectBestProducer(
+                    (t) => acceptedTypes.some((req: string) => this.checkCompatibility(t, req)),
+                    startTypes, usedActions, actionDepth, bfsPluginFilter, includePreference, neededActions
+                );
+                if (inputMatch) {
+                    queue.push(inputMatch.producedType);
                 }
             }
         }
+    }
+
+    private selectBestProducer(
+        isCompatibleOutput: (producedType: string) => boolean,
+        startTypes: Set<string>,
+        usedActions: Set<string>,
+        actionDepth: Map<string, number>,
+        bfsPluginFilter: Set<string> | undefined,
+        includePreference: Set<string> | undefined,
+        neededActions: Map<string, { plugin: string, action: string, depth: number, outputType: string }>
+    ): { plugin: string, action: string, depth: number, producedType: string } | null {
+        const planAvailable = this.computePlanAvailableTypes(startTypes, neededActions);
+
+        let best: { plugin: string, action: string, depth: number, producedType: string } | null = null;
+        let bestScore = -1;
+
+        for (const { plugin, action, details } of this.getAllActions()) {
+            if (bfsPluginFilter && !bfsPluginFilter.has(plugin)) continue;
+            const key = toActionId(plugin, action);
+            if (!usedActions.has(key)) continue;
+            if (!details.outputs) continue;
+
+            let matchedType: string | null = null;
+            for (const outputDef of Object.values(details.outputs)) {
+                const types = Array.isArray(outputDef.type) ? outputDef.type : [outputDef.type];
+                for (const t of types) {
+                    if (isCompatibleOutput(t)) { matchedType = t; break; }
+                }
+                if (matchedType) break;
+            }
+            if (!matchedType) continue;
+
+            const depth = actionDepth.get(key) ?? 0;
+
+            // Already in plan — its outputs are available for free, UNLESS
+            // the matched output type is compatible with one of the action's own
+            // required inputs (circular dependency: can't use own output to satisfy own input)
+            if (neededActions.has(key)) {
+                const reqInputs = Object.values(details.inputs || {}).filter((i) => i.required);
+                const selfCircular = reqInputs.some((inputDef) => {
+                    const inputTypes = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
+                    return inputTypes.some((t: string) => this.checkCompatibility(matchedType, t));
+                });
+                if (!selfCircular) {
+                    return { plugin, action, depth, producedType: matchedType };
+                }
+                continue;
+            }
+
+            // Score by fraction of required inputs already available from the plan
+            const reqInputs = Object.values(details.inputs || {}).filter((i) => i.required);
+            let score: number;
+            if (reqInputs.length === 0) {
+                score = 100;
+            } else {
+                const satisfied = reqInputs.filter((inputDef) => {
+                    const types = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
+                    return types.some((t: string) => this.hasCompatibleType(planAvailable, t));
+                }).length;
+                score = (satisfied / reqInputs.length) * 100;
+            }
+
+            // Boost score for actions from preferred (include_plugins) plugins
+            if (includePreference && includePreference.has(plugin)) {
+                score += 200;
+            }
+
+            if (score > bestScore || (score === bestScore && best !== null && depth < best.depth)) {
+                best = { plugin, action, depth, producedType: matchedType };
+                bestScore = score;
+            }
+        }
+
+        return best;
+    }
+
+    private computePlanAvailableTypes(
+        startTypes: Set<string>,
+        neededActions: Map<string, { plugin: string, action: string, depth: number, outputType: string }>,
+        beforeDepth?: number
+    ): Set<string> {
+        const available = new Set(startTypes);
+        for (const [, entry] of neededActions) {
+            if (beforeDepth !== undefined && entry.depth >= beforeDepth) continue;
+            const details = this.getAction(entry.plugin, entry.action);
+            if (!details?.outputs) continue;
+            for (const outputDef of Object.values(details.outputs)) {
+                const types = Array.isArray(outputDef.type) ? outputDef.type : [outputDef.type];
+                for (const t of types) available.add(t);
+            }
+        }
+        return available;
     }
 
     private resolvePluginFilter(filters?: { distribution?: string, plugin?: string }): Set<string> | undefined {
@@ -801,6 +907,47 @@ export class KnowledgeGraph {
         }
 
         return scopedPlugins;
+    }
+
+    private resolveBfsPluginFilter(filters?: {
+        distribution?: string,
+        excludePlugins?: string[],
+    }): Set<string> | undefined {
+        let result = this.resolvePluginFilter(filters);
+
+        if (filters?.excludePlugins && filters.excludePlugins.length > 0) {
+            const excludeSet = new Set<string>();
+            for (const name of filters.excludePlugins) {
+                const key = this.findKey(this.schema.plugins, name);
+                if (!key) throw new Error(`Plugin '${name}' not found.`);
+                excludeSet.add(key);
+            }
+            if (result) {
+                result = new Set([...result].filter((p) => !excludeSet.has(p)));
+            } else {
+                result = new Set(
+                    Object.keys(this.schema.plugins).filter((p) => !excludeSet.has(p))
+                );
+            }
+        }
+
+        return result;
+    }
+
+    private resolveIncludePreference(filters?: {
+        includePlugins?: string[],
+    }): Set<string> | undefined {
+        if (!filters?.includePlugins || filters.includePlugins.length === 0) {
+            return undefined;
+        }
+
+        const includeSet = new Set<string>();
+        for (const name of filters.includePlugins) {
+            const key = this.findKey(this.schema.plugins, name);
+            if (!key) throw new Error(`Plugin '${name}' not found.`);
+            includeSet.add(key);
+        }
+        return includeSet;
     }
 
     // --- Compatibility Logic ---
