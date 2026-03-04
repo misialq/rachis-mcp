@@ -29,18 +29,21 @@ jobs:
           node-version: '20'
 
       - name: Run Moshpit Introspection
+        id: moshpit
         run: |
           docker run --rm -v ${{ github.workspace }}:/mnt quay.io/qiime2/moshpit:${{ inputs.version }} \
             python /mnt/.github/scripts/introspect_plugins.py > moshpit.json
           docker rmi quay.io/qiime2/moshpit:${{ inputs.version }}
 
       - name: Run Amplicon Introspection
+        id: amplicon
         run: |
           docker run --rm -v ${{ github.workspace }}:/mnt quay.io/qiime2/amplicon:${{ inputs.version }} \
             python /mnt/.github/scripts/introspect_plugins.py > amplicon.json
           docker rmi quay.io/qiime2/amplicon:${{ inputs.version }}
 
       - name: Run Pathogenome Introspection
+        id: pathogenome
         continue-on-error: true
         run: |
           docker run --rm -v ${{ github.workspace }}:/mnt quay.io/qiime2/pathogenome:${{ inputs.version }} \
@@ -77,3 +80,85 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git commit -m "chore: add schema for QIIME 2 ${{ inputs.version }}"
           git push
+
+      - name: Write Job Summary
+        if: always()
+        run: |
+          python - << 'EOF'
+          import json, os, glob, subprocess
+
+          version    = '${{ inputs.version }}'
+          outcomes   = {
+              'moshpit':     '${{ steps.moshpit.outcome }}',
+              'amplicon':    '${{ steps.amplicon.outcome }}',
+              'pathogenome': '${{ steps.pathogenome.outcome }}',
+          }
+          committed  = '${{ steps.git-check.outputs.changes }}' == 'true'
+
+          def icon(outcome):
+              return {'success': '✅', 'failure': '❌', 'skipped': '⏭️'}.get(outcome, '❓')
+
+          # Schema stats (best-effort — file may not exist if an earlier step failed)
+          schema_path = f'src/schemas/qiime2-{version}.json'
+          stats = None
+          if os.path.exists(schema_path):
+              with open(schema_path) as f:
+                  data = json.load(f)
+              stats = {
+                  'plugins': len(data.get('plugins', {})),
+                  'actions': sum(len(p.get('actions', {})) for p in data.get('plugins', {}).values()),
+                  'types':   len(data.get('types', {})),
+              }
+
+          # All known versions (sorted numerically)
+          files = sorted(
+              glob.glob('src/schemas/qiime2-*.json'),
+              key=lambda f: [int(x) for x in
+                  os.path.basename(f).replace('qiime2-', '').replace('.json', '').split('.')]
+          )
+          versions = [os.path.basename(f).replace('qiime2-', '').replace('.json', '') for f in files]
+          latest = versions[-1] if versions else '—'
+
+          # New version or update?
+          existed = subprocess.run(
+              ['git', 'cat-file', '-e', f'HEAD~1:src/schemas/qiime2-{version}.json'],
+              capture_output=True
+          ).returncode == 0
+          change_label = '🔄 Updated existing version' if existed else '🆕 New version added'
+          if not committed:
+              change_label = '➖ No changes detected'
+
+          lines = [
+              f'## Schema Update: QIIME 2 {version}',
+              '',
+              '### Introspection',
+              '| Distribution | Outcome |',
+              '|---|---|',
+          ]
+          for dist, outcome in outcomes.items():
+              lines.append(f'| `{dist}` | {icon(outcome)} {outcome.capitalize()} |')
+
+          if stats:
+              lines += [
+                  '',
+                  '### Schema Statistics',
+                  '| Metric | Count |',
+                  '|---|---|',
+                  f'| Plugins | {stats["plugins"]} |',
+                  f'| Actions | {stats["actions"]} |',
+                  f'| Semantic Types | {stats["types"]} |',
+              ]
+
+          lines += [
+              '',
+              '### Registry',
+              f'| | |',
+              f'|---|---|',
+              f'| Available versions | {", ".join(f"`{v}`" for v in versions)} |',
+              f'| Latest | `{latest}` |',
+              f'| Result | {change_label} |',
+          ]
+
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+              f.write('\n'.join(lines) + '\n')
+          EOF
