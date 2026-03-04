@@ -56,6 +56,7 @@ test('RachisMCP registers the expected tool surface', async () => {
     const tools = await registerTools();
 
     assert.deepEqual([...tools.keys()].sort(), [
+        'compare_versions',
         'find_compatible_actions',
         'find_consumers',
         'find_input_type_candidates',

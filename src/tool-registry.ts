@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { normalizeActionIds, toActionId } from './action-utils.js';
 import { getGraph } from './graph-registry.js';
-import { AVAILABLE_VERSIONS, LATEST_VERSION } from './schema-registry.js';
+import { AVAILABLE_VERSIONS, LATEST_VERSION, getSchema } from './schema-registry.js';
+import { diffSchemas } from './schema-diff.js';
 
 export interface ToolRegistrar {
     tool: (...args: any[]) => unknown;
@@ -374,6 +375,45 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
                 return {
                     content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }],
                 };
+            }
+        }
+    );
+
+    server.tool(
+        'compare_versions',
+        'Compares two QIIME 2 schema versions and returns actions that were added, removed, or had their interface (inputs, parameters, outputs) changed. If from_version is omitted, the version immediately preceding to_version is used.',
+        {
+            to_version: z.string().describe('The target version to compare to (e.g. "2025.4")'),
+            from_version: z
+                .string()
+                .optional()
+                .describe('The base version to compare from. Defaults to the version preceding to_version.'),
+        },
+        async ({ from_version, to_version }: { from_version?: string; to_version: string }) => {
+            try {
+                const { schema: toSchema, version: tv } = getSchema(to_version);
+                let fv = from_version;
+                if (!fv) {
+                    const idx = AVAILABLE_VERSIONS.indexOf(tv);
+                    if (idx <= 0) {
+                        return {
+                            content: [
+                                {
+                                    type: 'text',
+                                    text: JSON.stringify({
+                                        error: `No preceding version for "${tv}". Provide from_version explicitly.`,
+                                    }),
+                                },
+                            ],
+                        };
+                    }
+                    fv = AVAILABLE_VERSIONS[idx - 1];
+                }
+                const { schema: fromSchema, version: resolvedFv } = getSchema(fv);
+                const diff = diffSchemas(fromSchema, toSchema, resolvedFv, tv);
+                return { content: [{ type: 'text', text: JSON.stringify(diff, null, 2) }] };
+            } catch (e: any) {
+                return { content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }] };
             }
         }
     );
