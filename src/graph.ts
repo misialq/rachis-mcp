@@ -742,10 +742,27 @@ export class KnowledgeGraph {
             );
             if (!best) continue;
 
-            const key = toActionId(best.plugin, best.action);
-            if (neededActions.has(key)) continue;
+            const actionKey = toActionId(best.plugin, best.action);
+            const stepKey = `${actionKey}::${current}`;
+            if (neededActions.has(stepKey)) continue;
 
-            neededActions.set(key, {
+            // If this action is already in the plan and the current output comes
+            // from a different port (free multi-port output), skip adding a new step
+            const bestDetails = this.getAction(best.plugin, best.action);
+            if (bestDetails) {
+                let freeFromExistingStep = false;
+                const keyPrefix = actionKey + '::';
+                for (const [entryKey, entry] of neededActions) {
+                    if (!entryKey.startsWith(keyPrefix)) continue;
+                    if (!this.outputTypesSharePort(bestDetails, current, entry.outputType)) {
+                        freeFromExistingStep = true;
+                        break;
+                    }
+                }
+                if (freeFromExistingStep) continue;
+            }
+
+            neededActions.set(stepKey, {
                 plugin: best.plugin,
                 action: best.action,
                 depth: best.depth,
@@ -816,19 +833,38 @@ export class KnowledgeGraph {
 
             const depth = actionDepth.get(key) ?? 0;
 
-            // Already in plan — its outputs are available for free, UNLESS
-            // the matched output type is compatible with one of the action's own
-            // required inputs (circular dependency: can't use own output to satisfy own input)
-            if (neededActions.has(key)) {
+            // Check if this action already has entries in neededActions
+            const existingEntries: { outputType: string }[] = [];
+            const keyPrefix = key + '::';
+            for (const [entryKey, entry] of neededActions) {
+                if (entryKey.startsWith(keyPrefix)) {
+                    existingEntries.push(entry);
+                }
+            }
+
+            if (existingEntries.length > 0) {
+                // Self-circular check: don't use own output to satisfy own input
                 const reqInputs = Object.values(details.inputs || {}).filter((i) => i.required);
                 const selfCircular = reqInputs.some((inputDef) => {
                     const inputTypes = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
                     return inputTypes.some((t: string) => this.checkCompatibility(matchedType, t));
                 });
-                if (!selfCircular) {
+                if (selfCircular) {
+                    continue;
+                }
+
+                // Check if matched type needs a new invocation: it shares an output
+                // port with an existing entry's output (union-typed port = one variant per invocation)
+                const needsNewInvocation = existingEntries.some((entry) =>
+                    matchedType !== entry.outputType &&
+                    this.outputTypesSharePort(details, matchedType, entry.outputType)
+                );
+
+                if (!needsNewInvocation) {
+                    // Free: either exact same output or from a different port
                     return { plugin, action, depth, producedType: matchedType };
                 }
-                continue;
+                // Same port, different variant — fall through to scoring as new invocation
             }
 
             // Score by fraction of required inputs already available from the plan
@@ -948,6 +984,22 @@ export class KnowledgeGraph {
             includeSet.add(key);
         }
         return includeSet;
+    }
+
+    private outputTypesSharePort(action: Action, typeA: string, typeB: string): boolean {
+        if (!action.outputs) return false;
+        for (const outputDef of Object.values(action.outputs)) {
+            const types = Array.isArray(outputDef.type) ? outputDef.type : [outputDef.type];
+            if (types.length <= 1) continue;
+            const matchesA = types.some((t) =>
+                this.checkCompatibility(t, typeA) || this.checkCompatibility(typeA, t)
+            );
+            const matchesB = types.some((t) =>
+                this.checkCompatibility(t, typeB) || this.checkCompatibility(typeB, t)
+            );
+            if (matchesA && matchesB) return true;
+        }
+        return false;
     }
 
     // --- Compatibility Logic ---

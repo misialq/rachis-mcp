@@ -32,12 +32,23 @@
 	},
 	"observability": {
 		"enabled": true
-	}
+	},
+	"routes": [
+		{
+			"pattern": "rachis-mcp.terrestryal.com",
+			"zone_name": "terrestryal.com",
+			"custom_domain": true
+		}
+	],
+	"workers_dev": true,
+	"preview_urls": true,
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
 	 */
-	// "placement": {  "mode": "smart" }
+	"placement": {
+		"mode": "smart"
+	}
 	/**
 	 * Bindings
 	 * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including

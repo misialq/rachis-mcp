@@ -79,10 +79,24 @@ const schema: Schema = {
                 },
             },
         },
+        classifier: {
+            actions: {
+                classify_items: {
+                    description: 'Classify items producing variant reports based on input type.',
+                    inputs: {
+                        items: { type: ['TypeA', 'TypeB'], required: true },
+                    },
+                    parameters: {},
+                    outputs: {
+                        report: { type: ['TypeReport_A', 'TypeReport_B'] },
+                    },
+                },
+            },
+        },
     },
     distributions: {
         test: {
-            plugins: ['planner', 'taxa', 'assembly'],
+            plugins: ['planner', 'taxa', 'assembly', 'classifier'],
         },
         only_taxa: {
             plugins: ['taxa'],
@@ -363,4 +377,51 @@ test('planWorkflow throws for unknown plugin in include_plugins', () => {
         () => graph.planWorkflow(['TypeA'], ['TypeC'], { includePlugins: ['nonexistent'] }),
         /Plugin 'nonexistent' not found/
     );
+});
+
+test('planWorkflow produces separate steps for union-typed output port variants', () => {
+    const graph = new KnowledgeGraph(schema);
+    // classifier:classify_items has a single output port with union types
+    // [TypeReport_A, TypeReport_B]. Requesting both should produce two invocations.
+    const plan = graph.planWorkflow(['TypeA'], ['TypeReport_A', 'TypeReport_B']);
+
+    assert.deepEqual(plan.achieved_targets.sort(), ['TypeReport_A', 'TypeReport_B']);
+    assert.deepEqual(plan.missing_inputs, []);
+
+    const classifySteps = plan.steps.filter((s) => s.action_id === 'classifier:classify_items');
+    assert.equal(classifySteps.length, 2, 'Should have two invocations of classify_items');
+    const outputTypes = classifySteps.map((s) => s.output_type).sort();
+    assert.deepEqual(outputTypes, ['TypeReport_A', 'TypeReport_B']);
+});
+
+test('planWorkflow reuses action for free when output is from a different port', () => {
+    // An action with two output ports — both are produced in a single invocation
+    const multiPortSchema: Schema = {
+        plugins: {
+            processor: {
+                actions: {
+                    process: {
+                        description: 'Process input producing two distinct outputs.',
+                        inputs: {
+                            source: { type: ['TypeInput'], required: true },
+                        },
+                        parameters: {},
+                        outputs: {
+                            primary: { type: ['TypePrimary'] },
+                            secondary: { type: ['TypeSecondary'] },
+                        },
+                    },
+                },
+            },
+        },
+        distributions: {},
+        types: {},
+    };
+    const graph = new KnowledgeGraph(multiPortSchema);
+    const plan = graph.planWorkflow(['TypeInput'], ['TypePrimary', 'TypeSecondary']);
+
+    assert.deepEqual(plan.achieved_targets.sort(), ['TypePrimary', 'TypeSecondary']);
+    // Only ONE step needed — both outputs come from different ports of the same action
+    const processSteps = plan.steps.filter((s) => s.action_id === 'processor:process');
+    assert.equal(processSteps.length, 1, 'Should have only one invocation of process');
 });
