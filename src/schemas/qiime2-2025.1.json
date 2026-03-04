@@ -107,7 +107,7 @@
                             "required": false
                         },
                         "coassemble": {
-                            "type": "Bool % Choices(True)\u00b9 | Bool % Choices(False)\u00b2",
+                            "type": "Bool % Choices(True)¹ | Bool % Choices(False)²",
                             "required": false
                         },
                         "uuid_type": {
@@ -539,7 +539,7 @@
                             "required": false
                         },
                         "coassemble": {
-                            "type": "Bool % Choices(True)\u00b9 | Bool % Choices(False)\u00b2",
+                            "type": "Bool % Choices(True)¹ | Bool % Choices(False)²",
                             "required": false
                         },
                         "uuid_type": {
@@ -3092,7 +3092,7 @@
                     },
                     "parameters": {
                         "method": {
-                            "type": "Str % Choices('blast', 'blastn-short')\u00b9 | Str % Choices('vsearch')\u00b2",
+                            "type": "Str % Choices('blast', 'blastn-short')¹ | Str % Choices('vsearch')²",
                             "required": false
                         },
                         "perc_identity": {
@@ -3112,7 +3112,7 @@
                             "required": false
                         },
                         "left_justify": {
-                            "type": "Bool % Choices(False)\u00b9 | Bool\u00b2",
+                            "type": "Bool % Choices(False)¹ | Bool²",
                             "required": false
                         }
                     },
@@ -4703,11 +4703,11 @@
                     "inputs": {},
                     "parameters": {
                         "version": {
-                            "type": "Str % Choices('128', '132')\u00b9 | Str % Choices('138')\u00b2 | Str % Choices('138.1', '138.2')\u00b3",
+                            "type": "Str % Choices('128', '132')¹ | Str % Choices('138')² | Str % Choices('138.1', '138.2')³",
                             "required": false
                         },
                         "target": {
-                            "type": "Str % Choices('SSURef_NR99', 'SSURef', 'LSURef')\u00b9 | Str % Choices('SSURef_NR99', 'SSURef')\u00b2 | Str % Choices('SSURef_NR99', 'SSURef', 'LSURef_NR99', 'LSURef')\u00b3",
+                            "type": "Str % Choices('SSURef_NR99', 'SSURef', 'LSURef')¹ | Str % Choices('SSURef_NR99', 'SSURef')² | Str % Choices('SSURef_NR99', 'SSURef', 'LSURef_NR99', 'LSURef')³",
                             "required": false
                         },
                         "include_species_labels": {
@@ -5836,7 +5836,7 @@
                     },
                     "parameters": {
                         "metric": {
-                            "type": "Str % Choices('rpkm')\u00b9 | Str % Choices('tpm')\u00b2",
+                            "type": "Str % Choices('rpkm')¹ | Str % Choices('tpm')²",
                             "required": false
                         },
                         "min_mapq": {
@@ -7165,7 +7165,7 @@
                     },
                     "parameters": {
                         "overlap_method": {
-                            "type": "Str % Choices('average', 'error_on_overlapping_feature', 'error_on_overlapping_sample', 'sum')\u00b9 | Str % Choices('average', 'error_on_overlapping_feature', 'error_on_overlapping_sample')\u00b2 | Str % Choices('error_on_overlapping_feature', 'error_on_overlapping_sample', 'union')\u00b3",
+                            "type": "Str % Choices('average', 'error_on_overlapping_feature', 'error_on_overlapping_sample', 'sum')¹ | Str % Choices('average', 'error_on_overlapping_feature', 'error_on_overlapping_sample')² | Str % Choices('error_on_overlapping_feature', 'error_on_overlapping_sample', 'union')³",
                             "required": false
                         }
                     },
@@ -7542,7 +7542,7 @@
                     },
                     "parameters": {
                         "method": {
-                            "type": "Str % (Choices('tpm')\u00b9 | Choices('fpkm')\u00b2 | Choices('tmm')\u00b3 | Choices('uq')\u2074 | Choices('cuf')\u2075 | Choices('ctf')\u2076 | Choices('cpm')\u2077)",
+                            "type": "Str % (Choices('tpm')¹ | Choices('fpkm')² | Choices('tmm')³ | Choices('uq')⁴ | Choices('cuf')⁵ | Choices('ctf')⁶ | Choices('cpm')⁷)",
                             "required": true
                         },
                         "m_trim": {
@@ -13511,11 +13511,11 @@
                             "required": true
                         },
                         "subject": {
-                            "type": "Str % Choices('')\u00b9'\u00b3 | Str\u00b2'\u2074",
+                            "type": "Str % Choices('')¹'³ | Str²'⁴",
                             "required": false
                         },
                         "timepoint": {
-                            "type": "Str % Choices('')\u00b9'\u00b2 | Str\u00b3'\u2074",
+                            "type": "Str % Choices('')¹'² | Str³'⁴",
                             "required": false
                         }
                     },
@@ -13573,7 +13573,7 @@
                     },
                     "parameters": {
                         "facet": {
-                            "type": "Str % Choices('within')\u00b9'\u00b2 | Str % Choices('within', 'across')\u00b3",
+                            "type": "Str % Choices('within')¹'² | Str % Choices('within', 'across')³",
                             "required": false
                         }
                     },
@@ -13631,11 +13631,11 @@
                             "required": true
                         },
                         "subject": {
-                            "type": "Str % Choices('')\u00b9'\u00b3 | Str\u00b2'\u2074",
+                            "type": "Str % Choices('')¹'³ | Str²'⁴",
                             "required": false
                         },
                         "timepoint": {
-                            "type": "Str % Choices('')\u00b9'\u00b2 | Str\u00b3'\u2074",
+                            "type": "Str % Choices('')¹'² | Str³'⁴",
                             "required": false
                         }
                     },
@@ -14719,5 +14719,6 @@
         "SRAFailedIDs": "",
         "NCBIAccessionIDs": "",
         "QUASTResults": ""
-    }
+    },
+    "qiime2_version": "2025.1"
 }

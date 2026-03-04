@@ -2,15 +2,18 @@ name: Update Rachis Schema
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 0 * * 0' # Weekly on Sunday midnight
+    inputs:
+      version:
+        description: 'QIIME 2 version (e.g. 2026.4)'
+        required: true
+        type: string
 
 jobs:
   update-schema:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -20,44 +23,57 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Run Moshpit Introspection
         run: |
-          docker run --rm -v ${{ github.workspace }}:/mnt quay.io/qiime2/moshpit:2026.1 \
+          docker run --rm -v ${{ github.workspace }}:/mnt quay.io/qiime2/moshpit:${{ inputs.version }} \
             python /mnt/.github/scripts/introspect_plugins.py > moshpit.json
-          docker rmi quay.io/qiime2/moshpit:2026.1
-      
+          docker rmi quay.io/qiime2/moshpit:${{ inputs.version }}
+
       - name: Run Amplicon Introspection
         run: |
-          docker run --rm -v ${{ github.workspace }}:/mnt quay.io/qiime2/amplicon:2026.1 \
+          docker run --rm -v ${{ github.workspace }}:/mnt quay.io/qiime2/amplicon:${{ inputs.version }} \
             python /mnt/.github/scripts/introspect_plugins.py > amplicon.json
-          docker rmi quay.io/qiime2/amplicon:2026.1
-            
+          docker rmi quay.io/qiime2/amplicon:${{ inputs.version }}
+
       - name: Run Pathogenome Introspection
         continue-on-error: true
         run: |
-          docker run --rm -v ${{ github.workspace }}:/mnt quay.io/qiime2/pathogenome:2026.1 \
+          docker run --rm -v ${{ github.workspace }}:/mnt quay.io/qiime2/pathogenome:${{ inputs.version }} \
             python /mnt/.github/scripts/introspect_plugins.py > pathogenome.json
-          docker rmi quay.io/qiime2/pathogenome:2026.1
+          docker rmi quay.io/qiime2/pathogenome:${{ inputs.version }}
 
-      - name: Merge Schemas
+      - name: Merge and Format Schema
         run: |
-          python .github/scripts/merge_schemas.py src/schema.json moshpit=moshpit.json amplicon=amplicon.json pathogenome=pathogenome.json
+          python .github/scripts/merge_schemas.py raw_schema.json \
+            moshpit=moshpit.json amplicon=amplicon.json pathogenome=pathogenome.json
+          python - << 'EOF'
+          import json
+          with open('raw_schema.json') as f:
+              data = json.load(f)
+          data['qiime2_version'] = '${{ inputs.version }}'
+          import os; os.makedirs('src/schemas', exist_ok=True)
+          with open('src/schemas/qiime2-${{ inputs.version }}.json', 'w') as f:
+              json.dump(data, f, indent=4)
+          EOF
 
-      - name: Format JSON Schema
-        run: |
-          mv src/schema.json raw_schema.json
-          python -m json.tool raw_schema.json src/schema.json
+      - name: Regenerate Schema Registry
+        run: node scripts/generate-schema-registry.mjs
 
       - name: Check for changes
         id: git-check
         run: |
-          git diff --exit-code src/schema.json || echo "changes=true" >> $GITHUB_OUTPUT
+          git add src/schemas/qiime2-${{ inputs.version }}.json src/schema-registry.ts
+          git diff --cached --exit-code || echo "changes=true" >> $GITHUB_OUTPUT
 
       - name: Commit and Push
         if: steps.git-check.outputs.changes == 'true'
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add src/schema.json
-          git commit -m "chore: update schema.json from latest Rachis distributions"
+          git commit -m "chore: add schema for QIIME 2 ${{ inputs.version }}"
           git push

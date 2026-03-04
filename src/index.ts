@@ -1,13 +1,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { McpAgent } from "agents/mcp";
-import { KnowledgeGraph } from "./graph.js";
 import { registerRachisTools } from "./tool-registry.js";
-import schema from "./schema.json";
-
-// Typed Schema Import
-// In a real build, we might need to assert the type or load it differently
-const graph = new KnowledgeGraph(schema as any);
 
 export class RachisMCP extends McpAgent {
     server = new McpServer({
@@ -16,7 +10,7 @@ export class RachisMCP extends McpAgent {
     });
 
     async init() {
-        registerRachisTools(this.server, graph);
+        registerRachisTools(this.server);
     }
 }
 

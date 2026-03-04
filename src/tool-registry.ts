@@ -1,25 +1,53 @@
 import { z } from 'zod';
 import { normalizeActionIds, toActionId } from './action-utils.js';
-import type { KnowledgeGraph } from './graph.js';
+import { getGraph } from './graph-registry.js';
+import { AVAILABLE_VERSIONS, LATEST_VERSION } from './schema-registry.js';
 
 export interface ToolRegistrar {
     tool: (...args: any[]) => unknown;
 }
 
-export const registerRachisTools = (server: ToolRegistrar, graph: KnowledgeGraph): void => {
+const versionParam = z
+    .string()
+    .optional()
+    .describe(
+        `QIIME 2 schema version to query (e.g. "${LATEST_VERSION}"). Omit to use the latest available.`
+    );
+
+export const registerRachisTools = (server: ToolRegistrar): void => {
+    server.tool(
+        'list_schema_versions',
+        'Lists all available QIIME 2 schema versions and indicates which is the latest.',
+        {},
+        async () => {
+            return {
+                content: [
+                    {
+                        type: 'text',
+                        text: JSON.stringify({ versions: AVAILABLE_VERSIONS, latest: LATEST_VERSION }, null, 2),
+                    },
+                ],
+            };
+        }
+    );
+
     server.tool(
         'list_available_plugins',
         'Lists all available Rachis plugins. Optionally filter by distribution name.',
-        { distribution: z.string().optional().describe('Optional distribution name to filter plugins') },
-        async ({ distribution }: { distribution?: string }) => {
+        {
+            distribution: z.string().optional().describe('Optional distribution name to filter plugins'),
+            version: versionParam,
+        },
+        async ({ distribution, version }: { distribution?: string; version?: string }) => {
             try {
+                const { graph } = getGraph(version);
                 const plugins = graph.getPlugins(distribution);
                 return {
-                    content: [{ type: 'text', text: JSON.stringify(plugins, null, 2) }]
+                    content: [{ type: 'text', text: JSON.stringify(plugins, null, 2) }],
                 };
             } catch (e: any) {
                 return {
-                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }]
+                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }],
                 };
             }
         }
@@ -28,29 +56,48 @@ export const registerRachisTools = (server: ToolRegistrar, graph: KnowledgeGraph
     server.tool(
         'list_distributions',
         'Lists all available Rachis distributions.',
-        {},
-        async () => {
-            const distributions = graph.getDistributions();
-            return {
-                content: [{ type: 'text', text: JSON.stringify(distributions, null, 2) }]
-            };
+        { version: versionParam },
+        async ({ version }: { version?: string }) => {
+            try {
+                const { graph } = getGraph(version);
+                const distributions = graph.getDistributions();
+                return {
+                    content: [{ type: 'text', text: JSON.stringify(distributions, null, 2) }],
+                };
+            } catch (e: any) {
+                return {
+                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }],
+                };
+            }
         }
     );
 
     server.tool(
         'get_type_details',
         'Retrieves the description and details for a specific Rachis semantic type.',
-        { type_name: z.string().describe('The name of the semantic type') },
-        async ({ type_name }: { type_name: string }) => {
-            const description = graph.getType(type_name);
-            if (description === undefined) {
+        {
+            type_name: z.string().describe('The name of the semantic type'),
+            version: versionParam,
+        },
+        async ({ type_name, version }: { type_name: string; version?: string }) => {
+            try {
+                const { graph } = getGraph(version);
+                const description = graph.getType(type_name);
+                if (description === undefined) {
+                    return {
+                        content: [
+                            { type: 'text', text: JSON.stringify({ error: `Type '${type_name}' not found.` }) },
+                        ],
+                    };
+                }
                 return {
-                    content: [{ type: 'text', text: JSON.stringify({ error: `Type '${type_name}' not found.` }) }]
+                    content: [{ type: 'text', text: description || 'No description available.' }],
+                };
+            } catch (e: any) {
+                return {
+                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }],
                 };
             }
-            return {
-                content: [{ type: 'text', text: description || 'No description available.' }]
-            };
         }
     );
 
@@ -59,16 +106,39 @@ export const registerRachisTools = (server: ToolRegistrar, graph: KnowledgeGraph
         'Retrieves the details, inputs, outputs, and parameters for a specific Rachis plugin action.',
         {
             plugin_name: z.string().describe('The name of the plugin'),
-            action_name: z.string().describe('The name of the action')
+            action_name: z.string().describe('The name of the action'),
+            version: versionParam,
         },
-        async ({ plugin_name, action_name }: { plugin_name: string, action_name: string }) => {
-            const action = graph.getAction(plugin_name, action_name);
-
-            if (!action) {
-                return { content: [{ type: 'text', text: JSON.stringify({ error: `Action '${plugin_name}:${action_name}' not found.` }) }] };
+        async ({
+            plugin_name,
+            action_name,
+            version,
+        }: {
+            plugin_name: string;
+            action_name: string;
+            version?: string;
+        }) => {
+            try {
+                const { graph } = getGraph(version);
+                const action = graph.getAction(plugin_name, action_name);
+                if (!action) {
+                    return {
+                        content: [
+                            {
+                                type: 'text',
+                                text: JSON.stringify({
+                                    error: `Action '${plugin_name}:${action_name}' not found.`,
+                                }),
+                            },
+                        ],
+                    };
+                }
+                return { content: [{ type: 'text', text: JSON.stringify(action, null, 2) }] };
+            } catch (e: any) {
+                return {
+                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }],
+                };
             }
-
-            return { content: [{ type: 'text', text: JSON.stringify(action, null, 2) }] };
         }
     );
 
@@ -79,23 +149,39 @@ export const registerRachisTools = (server: ToolRegistrar, graph: KnowledgeGraph
             semantic_type: z.string().describe('The semantic type to find compatible actions for'),
             distribution: z.string().optional().describe('Optional distribution name to scope the search'),
             plugin: z.string().optional().describe('Optional plugin name to scope the search'),
+            version: versionParam,
         },
-        async ({ semantic_type, distribution, plugin }: { semantic_type: string, distribution?: string, plugin?: string }) => {
+        async ({
+            semantic_type,
+            distribution,
+            plugin,
+            version,
+        }: {
+            semantic_type: string;
+            distribution?: string;
+            plugin?: string;
+            version?: string;
+        }) => {
             try {
+                const { graph } = getGraph(version);
                 const compatible = graph.findCompatibleActions(semantic_type, { distribution, plugin });
                 return {
-                    content: [{
-                        type: 'text',
-                        text: JSON.stringify(
-                            normalizeActionIds(compatible.map(({ plugin, action }) => toActionId(plugin, action))),
-                            null,
-                            2
-                        )
-                    }]
+                    content: [
+                        {
+                            type: 'text',
+                            text: JSON.stringify(
+                                normalizeActionIds(
+                                    compatible.map(({ plugin, action }) => toActionId(plugin, action))
+                                ),
+                                null,
+                                2
+                            ),
+                        },
+                    ],
                 };
             } catch (e: any) {
                 return {
-                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }]
+                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }],
                 };
             }
         }
@@ -108,34 +194,62 @@ export const registerRachisTools = (server: ToolRegistrar, graph: KnowledgeGraph
             kind: z.string().describe('Free-text description of the input kind to resolve'),
             distribution: z.string().optional().describe('Optional distribution name to scope candidate discovery'),
             plugin: z.string().optional().describe('Optional plugin name to scope candidate discovery'),
-            limit: z.number().int().min(1).max(25).optional().default(10)
+            limit: z
+                .number()
+                .int()
+                .min(1)
+                .max(25)
+                .optional()
+                .default(10)
                 .describe('Maximum number of candidate semantic types to return'),
+            version: versionParam,
         },
-        async ({ kind, distribution, plugin, limit }: { kind: string, distribution?: string, plugin?: string, limit: number }) => {
+        async ({
+            kind,
+            distribution,
+            plugin,
+            limit,
+            version,
+        }: {
+            kind: string;
+            distribution?: string;
+            plugin?: string;
+            limit: number;
+            version?: string;
+        }) => {
             try {
+                const { graph } = getGraph(version);
                 const candidates = graph.findInputTypeCandidates(kind, { distribution, plugin, limit });
                 return {
-                    content: [{
-                        type: 'text',
-                        text: JSON.stringify({
-                            kind,
-                            candidates: candidates.map((candidate) => ({
-                                semantic_type: candidate.semantic_type,
-                                description: candidate.description,
-                                score: candidate.score,
-                                match_sources: candidate.match_sources,
-                                matched_terms: candidate.matched_terms,
-                                common_input_names: candidate.common_input_names,
-                                consumers: normalizeActionIds(
-                                    candidate.consumers.map(({ plugin, action }) => toActionId(plugin, action))
-                                ),
-                            })),
-                        }, null, 2)
-                    }]
+                    content: [
+                        {
+                            type: 'text',
+                            text: JSON.stringify(
+                                {
+                                    kind,
+                                    candidates: candidates.map((candidate) => ({
+                                        semantic_type: candidate.semantic_type,
+                                        description: candidate.description,
+                                        score: candidate.score,
+                                        match_sources: candidate.match_sources,
+                                        matched_terms: candidate.matched_terms,
+                                        common_input_names: candidate.common_input_names,
+                                        consumers: normalizeActionIds(
+                                            candidate.consumers.map(({ plugin, action }) =>
+                                                toActionId(plugin, action)
+                                            )
+                                        ),
+                                    })),
+                                },
+                                null,
+                                2
+                            ),
+                        },
+                    ],
                 };
             } catch (e: any) {
                 return {
-                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }]
+                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }],
                 };
             }
         }
@@ -148,12 +262,25 @@ export const registerRachisTools = (server: ToolRegistrar, graph: KnowledgeGraph
             from: z.array(z.string()).describe('List of artifact types available as starting inputs'),
             to: z.array(z.string()).describe('List of target artifact types to produce'),
             distribution: z.string().optional().describe('Optional distribution name to scope the search'),
-            include_plugins: z.array(z.string()).optional()
-                .describe('Prefer actions from these plugins in the plan. Dependency plugins are still used when needed.'),
-            exclude_plugins: z.array(z.string()).optional()
+            include_plugins: z
+                .array(z.string())
+                .optional()
+                .describe(
+                    'Prefer actions from these plugins in the plan. Dependency plugins are still used when needed.'
+                ),
+            exclude_plugins: z
+                .array(z.string())
+                .optional()
                 .describe('Exclude actions from these plugins (blocklist)'),
-            max_depth: z.number().int().min(1).max(50).optional().default(10)
+            max_depth: z
+                .number()
+                .int()
+                .min(1)
+                .max(50)
+                .optional()
+                .default(10)
                 .describe('Maximum number of BFS depth levels to explore'),
+            version: versionParam,
         },
         async ({
             from,
@@ -162,15 +289,18 @@ export const registerRachisTools = (server: ToolRegistrar, graph: KnowledgeGraph
             include_plugins,
             exclude_plugins,
             max_depth,
+            version,
         }: {
-            from: string[],
-            to: string[],
-            distribution?: string,
-            include_plugins?: string[],
-            exclude_plugins?: string[],
-            max_depth: number,
+            from: string[];
+            to: string[];
+            distribution?: string;
+            include_plugins?: string[];
+            exclude_plugins?: string[];
+            max_depth: number;
+            version?: string;
         }) => {
             try {
+                const { graph } = getGraph(version);
                 const plan = graph.planWorkflow(from, to, {
                     distribution,
                     includePlugins: include_plugins,
@@ -178,23 +308,29 @@ export const registerRachisTools = (server: ToolRegistrar, graph: KnowledgeGraph
                     maxDepth: max_depth,
                 });
                 return {
-                    content: [{
-                        type: 'text',
-                        text: JSON.stringify({
-                            steps: plan.steps.map((step) => ({
-                                action_id: step.action_id,
-                                output_type: step.output_type,
-                            })),
-                            achieved_targets: plan.achieved_targets,
-                            missing_inputs: plan.missing_inputs,
-                            warnings: plan.warnings,
-                            available_types: plan.available_types,
-                        }, null, 2)
-                    }]
+                    content: [
+                        {
+                            type: 'text',
+                            text: JSON.stringify(
+                                {
+                                    steps: plan.steps.map((step) => ({
+                                        action_id: step.action_id,
+                                        output_type: step.output_type,
+                                    })),
+                                    achieved_targets: plan.achieved_targets,
+                                    missing_inputs: plan.missing_inputs,
+                                    warnings: plan.warnings,
+                                    available_types: plan.available_types,
+                                },
+                                null,
+                                2
+                            ),
+                        },
+                    ],
                 };
             } catch (e: any) {
                 return {
-                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }]
+                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }],
                 };
             }
         }
@@ -207,29 +343,36 @@ export const registerRachisTools = (server: ToolRegistrar, graph: KnowledgeGraph
             types: z.array(z.string()).describe('List of artifact types to be consumed'),
             distribution: z.string().optional().describe('Optional distribution name to scope consumer search'),
             plugin: z.string().optional().describe('Optional plugin name to scope consumer search'),
-            match_mode: z.enum(['required_inputs', 'strict_consumption'])
+            match_mode: z
+                .enum(['required_inputs', 'strict_consumption'])
                 .optional()
                 .default('required_inputs')
                 .describe('Consumer matching mode. Defaults to required_inputs.'),
+            version: versionParam,
         },
         async ({
             types,
             distribution,
             plugin,
             match_mode,
+            version,
         }: {
-            types: string[],
-            distribution?: string,
-            plugin?: string,
-            match_mode: 'required_inputs' | 'strict_consumption',
+            types: string[];
+            distribution?: string;
+            plugin?: string;
+            match_mode: 'required_inputs' | 'strict_consumption';
+            version?: string;
         }) => {
             try {
+                const { graph } = getGraph(version);
                 const consumers = graph.findConsumers(types, match_mode, { distribution, plugin });
-                const consumerStrings = normalizeActionIds(consumers.map((c) => toActionId(c.plugin, c.action)));
+                const consumerStrings = normalizeActionIds(
+                    consumers.map((c) => toActionId(c.plugin, c.action))
+                );
                 return { content: [{ type: 'text', text: JSON.stringify(consumerStrings, null, 2) }] };
             } catch (e: any) {
                 return {
-                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }]
+                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }],
                 };
             }
         }
@@ -242,15 +385,29 @@ export const registerRachisTools = (server: ToolRegistrar, graph: KnowledgeGraph
             types: z.array(z.string()).describe('List of artifact types to be produced'),
             distribution: z.string().optional().describe('Optional distribution name to scope producer search'),
             plugin: z.string().optional().describe('Optional plugin name to scope producer search'),
+            version: versionParam,
         },
-        async ({ types, distribution, plugin }: { types: string[], distribution?: string, plugin?: string }) => {
+        async ({
+            types,
+            distribution,
+            plugin,
+            version,
+        }: {
+            types: string[];
+            distribution?: string;
+            plugin?: string;
+            version?: string;
+        }) => {
             try {
+                const { graph } = getGraph(version);
                 const producers = graph.findProducers(types, { distribution, plugin });
-                const producerStrings = normalizeActionIds(producers.map((p) => toActionId(p.plugin, p.action)));
+                const producerStrings = normalizeActionIds(
+                    producers.map((p) => toActionId(p.plugin, p.action))
+                );
                 return { content: [{ type: 'text', text: JSON.stringify(producerStrings, null, 2) }] };
             } catch (e: any) {
                 return {
-                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }]
+                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }],
                 };
             }
         }

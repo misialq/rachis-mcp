@@ -10,6 +10,7 @@
 		"noEmit": false,
 		"isolatedModules": false,
 		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
 		"strict": true,
 		"skipLibCheck": true,
@@ -20,7 +21,8 @@
 	"files": [
 		"src/action-utils.ts",
 		"src/graph.ts",
-		"src/schema.json",
+		"src/graph-registry.ts",
+		"src/schema-registry.ts",
 		"src/semantic-type.ts",
 		"src/tool-registry.ts",
 		"src/types.ts",

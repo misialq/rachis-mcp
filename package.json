@@ -3,13 +3,15 @@
 	"version": "0.0.1",
 	"private": true,
 	"scripts": {
+		"predeploy": "node scripts/generate-schema-registry.mjs",
 		"deploy": "wrangler deploy",
+		"predev": "node scripts/generate-schema-registry.mjs",
 		"dev": "wrangler dev",
 		"format": "oxfmt --write .",
 		"lint:fix": "oxlint --fix",
 		"start": "wrangler dev",
 		"test": "npm run test:build && node --test .tmp-tests/tests/*.test.js",
-		"test:build": "rm -rf .tmp-tests && tsc -p tsconfig.test.json",
+		"test:build": "rm -rf .tmp-tests && tsc -p tsconfig.test.json && cp -r src/schemas .tmp-tests/src/schemas",
 		"cf-typegen": "wrangler types",
 		"type-check": "tsc --noEmit"
 	},

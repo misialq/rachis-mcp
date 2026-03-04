@@ -1,9 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
-import { KnowledgeGraph } from '../src/graph.js';
 import { registerRachisTools } from '../src/tool-registry.js';
-
-const schema = require('../src/schema.json');
 
 interface ToolRegistration {
     description?: string;
@@ -48,7 +45,7 @@ const registerTools = async () => {
         },
     };
 
-    registerRachisTools(fakeServer, new KnowledgeGraph(schema as any));
+    registerRachisTools(fakeServer);
     return tools;
 };
 
@@ -67,6 +64,7 @@ test('RachisMCP registers the expected tool surface', async () => {
         'get_type_details',
         'list_available_plugins',
         'list_distributions',
+        'list_schema_versions',
         'plan_workflow',
     ]);
 });
@@ -76,7 +74,7 @@ test('list_distributions and list_available_plugins return schema-backed results
     const listDistributions = tools.get('list_distributions')!;
     const listPlugins = tools.get('list_available_plugins')!;
 
-    const distributions = parseJsonText(await listDistributions.handler());
+    const distributions = parseJsonText(await listDistributions.handler({}));
     const plugins = parseJsonText(await listPlugins.handler({ distribution: 'amplicon' }));
 
     assert.equal(Array.isArray(distributions), true);
