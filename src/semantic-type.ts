@@ -252,7 +252,7 @@ const isParsedCompatible = (available: ParsedSemanticType, required: ParsedSeman
         }
 
         for (let i = 0; i < required.args.length; i++) {
-            if (!isParsedCompatible(available.args[i], required.args[i])) {
+            if (!isTypeCompatible(available.args[i].raw, required.args[i].raw)) {
                 return false;
             }
         }

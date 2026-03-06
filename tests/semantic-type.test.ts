@@ -57,3 +57,31 @@ test('isTypeCompatible rejects missing required properties', () => {
 test('isTypeCompatible rejects incompatible heads', () => {
     assert.equal(isTypeCompatible('FeatureData[Sequence]', 'FeatureTable[Frequency]'), false);
 });
+
+test('isTypeCompatible matches generic arg against union arg', () => {
+    // SampleData[PairedEndSequencesWithQuality] should satisfy
+    // SampleData[SequencesWithQuality | PairedEndSequencesWithQuality | JoinedSequencesWithQuality]
+    assert.equal(
+        isTypeCompatible(
+            'SampleData[PairedEndSequencesWithQuality]',
+            'SampleData[SequencesWithQuality | PairedEndSequencesWithQuality | JoinedSequencesWithQuality]'
+        ),
+        true
+    );
+    // and via List lift
+    assert.equal(
+        isTypeCompatible(
+            'SampleData[PairedEndSequencesWithQuality]',
+            'List[SampleData[SequencesWithQuality | PairedEndSequencesWithQuality | JoinedSequencesWithQuality]]'
+        ),
+        true
+    );
+    // non-member should still fail
+    assert.equal(
+        isTypeCompatible(
+            'SampleData[Contigs]',
+            'SampleData[SequencesWithQuality | PairedEndSequencesWithQuality | JoinedSequencesWithQuality]'
+        ),
+        false
+    );
+});

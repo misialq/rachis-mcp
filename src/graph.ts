@@ -9,10 +9,12 @@ import { toActionId } from './action-utils.js';
 // Efficient enough for < 1000 actions.
 
 export interface WorkflowStep {
+    step_id: number;
     action_id: string;
     plugin: string;
     action: string;
     output_type: string;
+    depends_on: number[];
 }
 
 export interface MultiWorkflowPlan {
@@ -668,7 +670,7 @@ export class KnowledgeGraph {
         const missingInputs: string[] = [];
         const neededActions = new Map<
             string,
-            { plugin: string, action: string, depth: number, outputType: string }
+            { plugin: string, action: string, depth: number, outputType: string, coveredTypes: Set<string> }
         >();
 
         for (const target of targetTypes) {
@@ -686,15 +688,132 @@ export class KnowledgeGraph {
             this.traceBackward(target, startTypes, usedActions, actionDepth, bfsPluginFilter, includePreference, neededActions);
         }
 
-        // Build steps sorted by depth (topological order)
-        const steps: WorkflowStep[] = [...neededActions.values()]
-            .sort((a, b) => a.depth - b.depth)
-            .map(({ plugin, action, outputType }) => ({
-                action_id: toActionId(plugin, action),
-                plugin,
-                action,
-                output_type: outputType,
-            }));
+        // Build plan entries for dependency analysis.
+        // Use coveredTypes (the specific output types each entry was included to produce),
+        // not all of an action's outputs. This prevents incidental outputs (e.g.
+        // SampleData[Contigs % Properties('unbinned')] from binning) from being mistaken
+        // as providers for unrelated upstream steps, while still allowing multi-port
+        // actions (e.g. build_kraken_db covering both Kraken2DB and BrackenDB) to be
+        // correctly found as predecessors for each of their outputs.
+        const entries = [...neededActions.values()];
+        const entryOutputTypes: string[][] = entries.map(({ coveredTypes }) => [...coveredTypes]);
+
+        // Build dependency graph from actual plan steps (not BFS depths).
+        // For each required input of entry i, find the plan entry with the
+        // highest BFS depth that produces a compatible type — that is the
+        // immediate predecessor for this input.
+        const immediate: Set<number>[] = entries.map(() => new Set<number>());
+        for (let i = 0; i < entries.length; i++) {
+            const { plugin, action } = entries[i];
+            const details = this.getAction(plugin, action);
+            if (!details?.inputs) continue;
+
+            for (const inputDef of Object.values(details.inputs)) {
+                if (!inputDef.required) continue;
+                const acceptedTypes = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
+
+                // Only skip to startTypes if no plan step produces a compatible type.
+                // When a plan step can directly satisfy this input (e.g. bin_contigs_metabat →
+                // SampleData[MAGs] for sourmash:compute), prefer the plan step over startTypes so
+                // that dependency chains are preserved even when startTypes happen to also satisfy
+                // the input.
+                //
+                // We only check non-List accepted types here: List[T] inputs are satisfied by plan
+                // entries (which produce T, not List[T]) only via List-lift, which is too broad and
+                // creates false dependencies (e.g. classify_kraken2 accepting List[FeatureData[MAG]]
+                // would otherwise pull in dereplicate_mags even for reads/contigs classification).
+                const directAcceptedTypes = acceptedTypes.filter((t) => !t.trim().startsWith('List['));
+                const hasPlanProducer = directAcceptedTypes.length > 0 && entries.some((_, j) =>
+                    j !== i && entryOutputTypes[j].some((t) => directAcceptedTypes.some((req) => this.checkCompatibility(t, req)))
+                );
+                if (!hasPlanProducer && acceptedTypes.some((t) => this.hasCompatibleType(startTypes, t))) {
+                    // Even when startTypes satisfies one variant of a multi-mode List input,
+                    // check if a plan step provides a more specific variant whose inner type
+                    // name aligns with this entry's output type.
+                    // Example: classify_kraken2 for 'contigs' output should still depend on
+                    // assembly (SampleData[Contigs]) even when reads are in startTypes.
+                    const stopTokens = new Set(['sampledata', 'featuredata', 'properties']);
+                    const tokenize = (s: string): Set<string> => new Set(
+                        s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').split(' ')
+                            .filter((t) => t.length > 3 && !stopTokens.has(t))
+                    );
+                    const outputTokens = tokenize(entries[i].outputType);
+                    if (outputTokens.size > 0) {
+                        for (const acceptedType of acceptedTypes) {
+                            const trimmed = acceptedType.trim();
+                            if (!trimmed.startsWith('List[') || !trimmed.endsWith(']')) continue;
+                            const innerType = trimmed.slice(5, -1).trim();
+                            if (this.hasCompatibleType(startTypes, innerType)) continue;
+                            const innerTokens = tokenize(innerType);
+                            if (innerTokens.size === 0 || ![...innerTokens].some((t) => outputTokens.has(t))) continue;
+                            let bestJ = -1;
+                            let bestDepth = -1;
+                            for (let j = 0; j < entries.length; j++) {
+                                if (j === i) continue;
+                                if (entryOutputTypes[j].some((t) => this.checkCompatibility(t, innerType))) {
+                                    if (entries[j].depth > bestDepth) { bestJ = j; bestDepth = entries[j].depth; }
+                                }
+                            }
+                            if (bestJ >= 0) immediate[i].add(bestJ);
+                        }
+                    }
+                    continue;
+                }
+
+                let bestJ = -1;
+                let bestDepth = -1;
+                for (let j = 0; j < entries.length; j++) {
+                    if (j === i) continue;
+                    if (entryOutputTypes[j].some((t) => acceptedTypes.some((req) => this.checkCompatibility(t, req)))) {
+                        if (entries[j].depth > bestDepth) {
+                            bestJ = j;
+                            bestDepth = entries[j].depth;
+                        }
+                    }
+                }
+                if (bestJ >= 0) immediate[i].add(bestJ);
+            }
+        }
+
+        // Topological sort (Kahn's algorithm), using BFS depth as tiebreaker
+        // so that independent steps are still ordered deterministically.
+        const inDegree = immediate.map((s) => s.size);
+        const dependents: Set<number>[] = entries.map(() => new Set<number>());
+        for (let i = 0; i < entries.length; i++) {
+            for (const j of immediate[i]) dependents[j].add(i);
+        }
+
+        const ready = entries
+            .map((_, i) => i)
+            .filter((i) => inDegree[i] === 0)
+            .sort((a, b) => entries[a].depth - entries[b].depth);
+
+        const sortedIndices: number[] = [];
+        while (ready.length > 0) {
+            const i = ready.shift()!;
+            sortedIndices.push(i);
+            for (const j of dependents[i]) {
+                if (--inDegree[j] === 0) {
+                    const pos = ready.findIndex((k) => entries[k].depth > entries[j].depth);
+                    pos === -1 ? ready.push(j) : ready.splice(pos, 0, j);
+                }
+            }
+        }
+        // Fallback: append any remaining entries in BFS-depth order (shouldn't happen)
+        for (let i = 0; i < entries.length; i++) {
+            if (!sortedIndices.includes(i)) sortedIndices.push(i);
+        }
+
+        const origToStepId = new Map(sortedIndices.map((orig, pos) => [orig, pos + 1]));
+
+        const steps: WorkflowStep[] = sortedIndices.map((orig, pos) => ({
+            step_id: pos + 1,
+            action_id: toActionId(entries[orig].plugin, entries[orig].action),
+            plugin: entries[orig].plugin,
+            action: entries[orig].action,
+            output_type: entries[orig].outputType,
+            depends_on: [...immediate[orig]].map((j) => origToStepId.get(j)!).sort((a, b) => a - b),
+        }));
 
         // Compute available types after running just the plan steps
         const planAvailableTypes = new Set(startTypes);
@@ -724,7 +843,7 @@ export class KnowledgeGraph {
         actionDepth: Map<string, number>,
         bfsPluginFilter: Set<string> | undefined,
         includePreference: Set<string> | undefined,
-        neededActions: Map<string, { plugin: string, action: string, depth: number, outputType: string }>
+        neededActions: Map<string, { plugin: string, action: string, depth: number, outputType: string, coveredTypes: Set<string> }>
     ): void {
         const visited = new Set<string>();
         const queue: string[] = [targetType];
@@ -747,7 +866,10 @@ export class KnowledgeGraph {
             if (neededActions.has(stepKey)) continue;
 
             // If this action is already in the plan and the current output comes
-            // from a different port (free multi-port output), skip adding a new step
+            // from a different port (free multi-port output), skip adding a new step.
+            // Update the existing entry's coveredTypes so dep-graph building knows
+            // this entry also produces the current type (e.g. build_kraken_db covers
+            // both Kraken2DB and BrackenDB even though only one is stored as outputType).
             const bestDetails = this.getAction(best.plugin, best.action);
             if (bestDetails) {
                 let freeFromExistingStep = false;
@@ -755,6 +877,7 @@ export class KnowledgeGraph {
                 for (const [entryKey, entry] of neededActions) {
                     if (!entryKey.startsWith(keyPrefix)) continue;
                     if (!this.outputTypesSharePort(bestDetails, current, entry.outputType)) {
+                        entry.coveredTypes.add(current);
                         freeFromExistingStep = true;
                         break;
                     }
@@ -767,6 +890,7 @@ export class KnowledgeGraph {
                 action: best.action,
                 depth: best.depth,
                 outputType: current,
+                coveredTypes: new Set([current]),
             });
 
             const actionDetails = this.getAction(best.plugin, best.action);
@@ -808,7 +932,7 @@ export class KnowledgeGraph {
         actionDepth: Map<string, number>,
         bfsPluginFilter: Set<string> | undefined,
         includePreference: Set<string> | undefined,
-        neededActions: Map<string, { plugin: string, action: string, depth: number, outputType: string }>
+        neededActions: Map<string, { plugin: string, action: string, depth: number, outputType: string, coveredTypes: Set<string> }>
     ): { plugin: string, action: string, depth: number, producedType: string } | null {
         const planAvailable = this.computePlanAvailableTypes(startTypes, neededActions);
 
@@ -896,7 +1020,7 @@ export class KnowledgeGraph {
 
     private computePlanAvailableTypes(
         startTypes: Set<string>,
-        neededActions: Map<string, { plugin: string, action: string, depth: number, outputType: string }>,
+        neededActions: Map<string, { plugin: string, action: string, depth: number, outputType: string, coveredTypes: Set<string> }>,
         beforeDepth?: number
     ): Set<string> {
         const available = new Set(startTypes);

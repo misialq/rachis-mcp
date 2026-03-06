@@ -4,6 +4,56 @@ import { getGraph } from './graph-registry.js';
 import { AVAILABLE_VERSIONS, LATEST_VERSION, getSchema } from './schema-registry.js';
 import { diffSchemas } from './schema-diff.js';
 
+const toMermaid = (
+    steps: Array<{ step_id: number; action_id: string; output_type: string; depends_on: number[] }>
+): string => {
+    if (steps.length === 0) return 'flowchart LR';
+
+    const stepById = new Map(steps.map((s) => [s.step_id, s]));
+
+    // Collect all type strings that appear as node boxes
+    const types = new Set<string>();
+    for (const s of steps) {
+        types.add(s.output_type);
+        for (const dep of s.depends_on) {
+            const pred = stepById.get(dep);
+            if (pred) types.add(pred.output_type);
+        }
+    }
+
+    // Assign stable short node IDs
+    const typeToId = new Map<string, string>();
+    let idx = 0;
+    for (const t of types) typeToId.set(t, `t${idx++}`);
+
+    const sanitize = (s: string) => s.replace(/"/g, "'");
+    const fmtAction = (id: string) => {
+        const [plugin, action] = id.split(':');
+        return `${plugin}:${action.replaceAll('_', '-')}`;
+    };
+
+    const lines = ['flowchart LR'];
+
+    // Type nodes (boxes)
+    for (const [type, id] of typeToId) {
+        lines.push(`    ${id}["${sanitize(type)}"]`);
+    }
+
+    // Action edges: predecessor_output_type -->|action| step_output_type
+    for (const s of steps) {
+        const outId = typeToId.get(s.output_type)!;
+        const label = sanitize(fmtAction(s.action_id));
+        for (const dep of s.depends_on) {
+            const pred = stepById.get(dep);
+            if (!pred) continue;
+            const inId = typeToId.get(pred.output_type)!;
+            lines.push(`    ${inId} -->|"${label}"| ${outId}`);
+        }
+    }
+
+    return lines.join('\n');
+};
+
 export interface ToolRegistrar {
     tool: (...args: any[]) => unknown;
 }
@@ -315,13 +365,16 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
                             text: JSON.stringify(
                                 {
                                     steps: plan.steps.map((step) => ({
+                                        step_id: step.step_id,
                                         action_id: step.action_id,
                                         output_type: step.output_type,
+                                        depends_on: step.depends_on,
                                     })),
                                     achieved_targets: plan.achieved_targets,
                                     missing_inputs: plan.missing_inputs,
                                     warnings: plan.warnings,
                                     available_types: plan.available_types,
+                                    graph: toMermaid(plan.steps),
                                 },
                                 null,
                                 2
