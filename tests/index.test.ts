@@ -67,7 +67,6 @@ test('RachisMCP registers the expected tool surface', async () => {
         'list_plugins',
         'list_schema_versions',
         'list_semantic_types',
-        'plan_workflow',
     ]);
 });
 
