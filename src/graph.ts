@@ -36,6 +36,12 @@ export interface TypeDiscoveryCandidate {
     consumers: { plugin: string, action: string }[];
 }
 
+export interface SemanticTypeInfo {
+    type_name: string;
+    origin_plugin?: string;
+    description: string | null;
+}
+
 interface TypeUsageSummary {
     inputNameCounts: Map<string, number>;
     actionDescriptions: Map<string, number>;
@@ -122,6 +128,83 @@ const formatSemanticBaseType = (parsed: ParsedSemanticType): string => {
     return `${parsed.head}[${parsed.args.map((arg) => formatSemanticBaseType(arg)).join(', ')}]`;
 };
 
+const isEscapedTypeExpression = (value: string, index: number): boolean => {
+    let backslashCount = 0;
+    for (let i = index - 1; i >= 0 && value[i] === '\\'; i--) {
+        backslashCount++;
+    }
+    return backslashCount % 2 === 1;
+};
+
+const splitTopLevelTypeUnion = (value: string): string[] => {
+    const parts: string[] = [];
+    let current = '';
+    let squareDepth = 0;
+    let parenDepth = 0;
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+
+    for (let i = 0; i < value.length; i++) {
+        const char = value[i];
+
+        if (char === "'" && !inDoubleQuote && !isEscapedTypeExpression(value, i)) {
+            inSingleQuote = !inSingleQuote;
+            current += char;
+            continue;
+        }
+
+        if (char === '"' && !inSingleQuote && !isEscapedTypeExpression(value, i)) {
+            inDoubleQuote = !inDoubleQuote;
+            current += char;
+            continue;
+        }
+
+        if (!inSingleQuote && !inDoubleQuote) {
+            if (char === '[') squareDepth++;
+            if (char === ']') squareDepth--;
+            if (char === '(') parenDepth++;
+            if (char === ')') parenDepth--;
+
+            if (char === '|' && squareDepth === 0 && parenDepth === 0) {
+                const trimmed = current.trim();
+                if (trimmed.length > 0) {
+                    parts.push(trimmed);
+                }
+                current = '';
+                continue;
+            }
+        }
+
+        current += char;
+    }
+
+    const trimmed = current.trim();
+    if (trimmed.length > 0) {
+        parts.push(trimmed);
+    }
+
+    return parts;
+};
+
+const collectSchemaBackedTypesFromExpression = (
+    expression: string,
+    knownTypes: Set<string>,
+    collectedTypes: Set<string>
+): void => {
+    for (const part of splitTopLevelTypeUnion(expression.trim())) {
+        const parsed = parseSemanticType(part);
+        const baseType = formatSemanticBaseType(parsed);
+
+        if (knownTypes.has(baseType)) {
+            collectedTypes.add(baseType);
+        }
+
+        for (const arg of parsed.args) {
+            collectSchemaBackedTypesFromExpression(arg.raw, knownTypes, collectedTypes);
+        }
+    }
+};
+
 export class KnowledgeGraph {
     private schema: Schema;
 
@@ -198,6 +281,68 @@ export class KnowledgeGraph {
 
     getType(typeName: string): string | undefined {
         return this.schema.types[typeName];
+    }
+
+    private buildSemanticTypeMetadata(): Map<string, SemanticTypeInfo> {
+        const metadata = new Map<string, SemanticTypeInfo>();
+
+        for (const [typeName, description] of Object.entries(this.schema.types)) {
+            metadata.set(typeName, {
+                type_name: typeName,
+                description: description || null,
+            });
+        }
+
+        for (const [pluginName, plugin] of Object.entries(this.schema.plugins)) {
+            for (const [typeName, description] of Object.entries(plugin.types || {})) {
+                const existing = metadata.get(typeName);
+                metadata.set(typeName, {
+                    type_name: typeName,
+                    origin_plugin: pluginName,
+                    description: existing?.description || description || null,
+                });
+            }
+        }
+
+        return metadata;
+    }
+
+    listSemanticTypes(filters?: { distribution?: string, plugin?: string }): SemanticTypeInfo[] {
+        const metadataByType = this.buildSemanticTypeMetadata();
+        const knownTypes = new Set(metadataByType.keys());
+
+        if (!filters?.distribution && !filters?.plugin) {
+            return [...metadataByType.values()].sort((left, right) => left.type_name.localeCompare(right.type_name));
+        }
+
+        const pluginFilter = this.resolvePluginFilter(filters);
+        if (pluginFilter && pluginFilter.size === 0) {
+            return [];
+        }
+
+        const scopedTypes = new Set<string>();
+
+        for (const { plugin, details } of this.getAllActions()) {
+            if (pluginFilter && !pluginFilter.has(plugin)) continue;
+
+            for (const definitions of [details.inputs, details.outputs]) {
+                if (!definitions) continue;
+
+                for (const definition of Object.values(definitions) as Array<{ type?: string | string[] }>) {
+                    if (!definition.type) continue;
+
+                    const typeExpressions = Array.isArray(definition.type) ? definition.type : [definition.type];
+                    for (const typeExpression of typeExpressions) {
+                        collectSchemaBackedTypesFromExpression(typeExpression, knownTypes, scopedTypes);
+                    }
+                }
+            }
+        }
+
+        return [...scopedTypes]
+            .map((typeName) => metadataByType.get(typeName))
+            .filter((typeInfo): typeInfo is SemanticTypeInfo => typeInfo !== undefined)
+            .sort((left, right) => left.type_name.localeCompare(right.type_name));
     }
 
     getAction(pluginName: string, actionName: string): Action | undefined {

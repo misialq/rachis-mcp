@@ -63,17 +63,18 @@ test('RachisMCP registers the expected tool surface', async () => {
         'find_producers',
         'get_action_details',
         'get_type_details',
-        'list_available_plugins',
         'list_distributions',
+        'list_plugins',
         'list_schema_versions',
+        'list_semantic_types',
         'plan_workflow',
     ]);
 });
 
-test('list_distributions and list_available_plugins return schema-backed results', async () => {
+test('list_distributions and list_plugins return schema-backed results', async () => {
     const tools = await registerTools();
     const listDistributions = tools.get('list_distributions')!;
-    const listPlugins = tools.get('list_available_plugins')!;
+    const listPlugins = tools.get('list_plugins')!;
 
     const distributions = parseJsonText(await listDistributions.handler({}));
     const plugins = parseJsonText(await listPlugins.handler({ distribution: 'amplicon' }));
@@ -82,6 +83,43 @@ test('list_distributions and list_available_plugins return schema-backed results
     assert.deepEqual(distributions.sort(), ['amplicon', 'moshpit', 'pathogenome']);
     assert.equal(Array.isArray(plugins), true);
     assert.equal(plugins.includes('feature-classifier'), true);
+});
+
+test('list_semantic_types returns sorted canonical types and honors distribution/version filters', async () => {
+    const tools = await registerTools();
+    const listSemanticTypes = tools.get('list_semantic_types')!;
+
+    const allTypes = parseJsonText(await listSemanticTypes.handler({}));
+    assert.equal(Array.isArray(allTypes), true);
+    assert.equal(allTypes.some((typeInfo: any) => typeInfo.type_name === 'FeatureData[Sequence]'), true);
+    assert.deepEqual(
+        [...allTypes]
+            .map((typeInfo: any) => typeInfo.type_name)
+            .sort((left: string, right: string) => left.localeCompare(right)),
+        allTypes.map((typeInfo: any) => typeInfo.type_name)
+    );
+
+    const quastResults = allTypes.find((typeInfo: any) => typeInfo.type_name === 'QUASTResults');
+    assert.equal(quastResults.origin_plugin, 'assembly');
+    assert.equal(Object.prototype.hasOwnProperty.call(quastResults, 'description'), true);
+    assert.equal(quastResults.description, null);
+
+    const pathogenomeTypes = parseJsonText(await listSemanticTypes.handler({ distribution: 'pathogenome' }));
+    assert.equal(Array.isArray(pathogenomeTypes), true);
+    assert.equal(pathogenomeTypes.some((typeInfo: any) => typeInfo.type_name === 'FeatureData[Contig]'), true);
+    assert.equal(pathogenomeTypes.some((typeInfo: any) => typeInfo.type_name === 'FeatureData[Sequence]'), true);
+
+    const ampliconTypes = parseJsonText(await listSemanticTypes.handler({ distribution: 'amplicon' }));
+    assert.equal(Array.isArray(ampliconTypes), true);
+    assert.equal(ampliconTypes.some((typeInfo: any) => typeInfo.type_name === 'FeatureData[Contig]'), false);
+    assert.equal(ampliconTypes.some((typeInfo: any) => typeInfo.type_name === 'FeatureData[Sequence]'), true);
+
+    const olderTypes = parseJsonText(await listSemanticTypes.handler({ version: '2025.4' }));
+    assert.equal(Array.isArray(olderTypes), true);
+    assert.equal(olderTypes.some((typeInfo: any) => typeInfo.type_name === 'FeatureMap[FunctionToContigs]'), false);
+
+    const errorResult = parseJsonText(await listSemanticTypes.handler({ distribution: 'missing_distribution' }));
+    assert.match(errorResult.error, /Distribution 'missing_distribution' not found/);
 });
 
 test('get_type_details and get_action_details expose descriptions and missing-item errors', async () => {

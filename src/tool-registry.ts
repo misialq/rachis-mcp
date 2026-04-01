@@ -83,7 +83,7 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
     );
 
     server.tool(
-        'list_available_plugins',
+        'list_plugins',
         'Lists all available Rachis plugins. Optionally filter by distribution name.',
         {
             distribution: z.string().optional().describe('Optional distribution name to filter plugins'),
@@ -114,6 +114,28 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
                 const distributions = graph.getDistributions();
                 return {
                     content: [{ type: 'text', text: JSON.stringify(distributions, null, 2) }],
+                };
+            } catch (e: any) {
+                return {
+                    content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }],
+                };
+            }
+        }
+    );
+
+    server.tool(
+        'list_semantic_types',
+        'Lists all known Rachis semantic types. Optionally filter by distribution name.',
+        {
+            distribution: z.string().optional().describe('Optional distribution name to scope semantic types'),
+            version: versionParam,
+        },
+        async ({ distribution, version }: { distribution?: string; version?: string }) => {
+            try {
+                const { graph } = getGraph(version);
+                const semanticTypes = graph.listSemanticTypes({ distribution });
+                return {
+                    content: [{ type: 'text', text: JSON.stringify(semanticTypes, null, 2) }],
                 };
             } catch (e: any) {
                 return {

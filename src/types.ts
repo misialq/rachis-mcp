@@ -23,6 +23,7 @@ export interface Action {
 
 export interface Plugin {
   actions: Record<string, Action>;
+  types?: Record<string, string>;
 }
 
 export interface Distribution {
