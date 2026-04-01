@@ -125,6 +125,9 @@ test('list_semantic_types returns sorted canonical types and honors distribution
     assert.equal(Object.prototype.hasOwnProperty.call(quastResults, 'description'), true);
     assert.equal(quastResults.description, null);
 
+    const classifierType = allTypes.find((typeInfo: any) => typeInfo.type_name === 'TaxonomicClassifier');
+    assert.equal(classifierType.origin_plugin, 'feature-classifier');
+
     const pathogenomeTypes = parseJsonText(await listSemanticTypes.handler({ distribution: 'pathogenome' }));
     assert.equal(Array.isArray(pathogenomeTypes), true);
     assert.equal(pathogenomeTypes.some((typeInfo: any) => typeInfo.type_name === 'FeatureData[Contig]'), true);
@@ -155,8 +158,8 @@ test('get_type_details and get_action_details expose descriptions and missing-it
     assert.match(missingType.error, /Type 'TypeThatDoesNotExist' not found/);
 
     const actionResult = parseJsonText(await getActionDetails.handler({
-        plugin_name: 'feature-classifier',
-        action_name: 'classify_sklearn',
+        plugin_name: 'feature_classifier',
+        action_name: 'classify-sklearn',
     }));
     assert.equal(actionResult.description, 'Classify reads by taxon using a fitted classifier.');
     assert.equal(actionResult.inputs.reads.type[0], 'FeatureData[Sequence]');
@@ -165,7 +168,7 @@ test('get_type_details and get_action_details expose descriptions and missing-it
         plugin_name: 'feature-classifier',
         action_name: 'missing_action',
     }));
-    assert.match(missingAction.error, /Action 'feature-classifier:missing_action' not found/);
+    assert.match(missingAction.error, /Action 'feature-classifier:missing-action' not found/);
 });
 
 test('find_compatible_actions wraps filter errors and returns sorted action ids', async () => {
@@ -177,7 +180,7 @@ test('find_compatible_actions wraps filter errors and returns sorted action ids'
         plugin: 'feature-classifier',
     }));
     assert.equal(Array.isArray(compatible), true);
-    assert.equal(compatible.includes('feature-classifier:classify_sklearn'), true);
+    assert.equal(compatible.includes('feature-classifier:classify-sklearn'), true);
     assert.deepEqual([...compatible].sort(), compatible);
 
     const errorResult = parseJsonText(await findCompatibleActions.handler({
@@ -213,10 +216,10 @@ test('find_consumers and find_producers expose normalized action id arrays', asy
 
     const consumers = parseJsonText(await findConsumers.handler({
         types: ['FeatureData[Sequence]'],
-        plugin: 'feature-classifier',
+        plugin: 'feature_classifier',
     }));
     assert.equal(Array.isArray(consumers), true);
-    assert.equal(consumers.includes('feature-classifier:extract_reads'), true);
+    assert.equal(consumers.includes('feature-classifier:extract-reads'), true);
     assert.deepEqual([...consumers].sort(), consumers);
 
     const producers = parseJsonText(await findProducers.handler({
@@ -224,6 +227,6 @@ test('find_consumers and find_producers expose normalized action id arrays', asy
         plugin: 'feature-classifier',
     }));
     assert.equal(Array.isArray(producers), true);
-    assert.equal(producers.includes('feature-classifier:classify_sklearn'), true);
+    assert.equal(producers.includes('feature-classifier:classify-sklearn'), true);
     assert.deepEqual([...producers].sort(), producers);
 });

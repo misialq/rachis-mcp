@@ -1,6 +1,6 @@
 import type { Action, Parameter, Schema } from './types.js';
 import { isTypeCompatible, parseSemanticType, type ParsedSemanticType } from './semantic-type.js';
-import { toActionId } from './action-utils.js';
+import { toActionId, toDisplayName } from './action-utils.js';
 
 // Graph Representation
 // We will not build a full graph object like NetworkX but serve queries directly from the Schema
@@ -298,7 +298,7 @@ export class KnowledgeGraph {
                 const existing = metadata.get(typeName);
                 metadata.set(typeName, {
                     type_name: typeName,
-                    origin_plugin: pluginName,
+                    origin_plugin: toDisplayName(pluginName),
                     description: existing?.description || description || null,
                 });
             }

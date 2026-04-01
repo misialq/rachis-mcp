@@ -171,7 +171,7 @@ test('planWorkflow handles multiple targets', () => {
     assert.deepEqual(plan.missing_inputs, []);
     const actionIds = plan.steps.map((s) => s.action_id);
     assert.ok(actionIds.includes('planner:convert'));
-    assert.ok(actionIds.includes('planner:derive_b'));
+    assert.ok(actionIds.includes('planner:derive-b'));
 });
 
 test('planWorkflow handles mix of achievable and unreachable targets', () => {
@@ -297,8 +297,8 @@ test('planWorkflow uses type compatibility, not just exact string matching', () 
 
     assert.deepEqual(plan.achieved_targets, ['TypeResult']);
     assert.equal(plan.steps.length, 2);
-    assert.equal(plan.steps[0].action_id, 'indexer:build_index');
-    assert.equal(plan.steps[1].action_id, 'indexer:use_index');
+    assert.equal(plan.steps[0].action_id, 'indexer:build-index');
+    assert.equal(plan.steps[1].action_id, 'indexer:use-index');
 });
 
 test('planWorkflow exclude_plugins removes plugins from consideration', () => {
@@ -310,9 +310,9 @@ test('planWorkflow exclude_plugins removes plugins from consideration', () => {
     assert.deepEqual(plan.achieved_targets, ['TypeC']);
     const actionIds = plan.steps.map((s) => s.action_id);
     assert.ok(!actionIds.includes('taxa:profile'), 'taxa:profile should be excluded');
-    assert.ok(actionIds.includes('planner:derive_b'), 'Should use derive_b for TypeB');
+    assert.ok(actionIds.includes('planner:derive-b'), 'Should use derive_b for TypeB');
     assert.ok(
-        actionIds.includes('planner:combine') || actionIds.includes('assembly:assemble_c'),
+        actionIds.includes('planner:combine') || actionIds.includes('assembly:assemble-c'),
         'Should use combine or assemble_c for TypeC'
     );
 });
@@ -344,8 +344,8 @@ test('planWorkflow include_plugins pulls in dependency plugins when needed', () 
 
     assert.deepEqual(plan.achieved_targets, ['TypeC']);
     const actionIds = plan.steps.map((s) => s.action_id);
-    assert.ok(actionIds.includes('assembly:assemble_c'), 'Should prefer assembly:assemble_c');
-    assert.ok(actionIds.includes('planner:derive_b'), 'Should pull in planner:derive_b as dependency');
+    assert.ok(actionIds.includes('assembly:assemble-c'), 'Should prefer assembly:assemble_c');
+    assert.ok(actionIds.includes('planner:derive-b'), 'Should pull in planner:derive_b as dependency');
 });
 
 test('planWorkflow include and exclude can be combined', () => {
@@ -388,7 +388,7 @@ test('planWorkflow produces separate steps for union-typed output port variants'
     assert.deepEqual(plan.achieved_targets.sort(), ['TypeReport_A', 'TypeReport_B']);
     assert.deepEqual(plan.missing_inputs, []);
 
-    const classifySteps = plan.steps.filter((s) => s.action_id === 'classifier:classify_items');
+    const classifySteps = plan.steps.filter((s) => s.action_id === 'classifier:classify-items');
     assert.equal(classifySteps.length, 2, 'Should have two invocations of classify_items');
     const outputTypes = classifySteps.map((s) => s.output_type).sort();
     assert.deepEqual(outputTypes, ['TypeReport_A', 'TypeReport_B']);

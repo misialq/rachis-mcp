@@ -1,4 +1,7 @@
-export const toActionId = (plugin: string, action: string): string => `${plugin}:${action}`;
+export const toDisplayName = (name: string): string => name.replaceAll('_', '-');
+
+export const toActionId = (plugin: string, action: string): string =>
+    `${toDisplayName(plugin)}:${toDisplayName(action)}`;
 
 export const normalizeActionIds = (actionIds: Iterable<string>): string[] => {
     const normalized = Array.from(
@@ -11,4 +14,3 @@ export const normalizeActionIds = (actionIds: Iterable<string>): string[] => {
 
     return normalized.sort((a, b) => a.localeCompare(b));
 };
-

@@ -1,4 +1,5 @@
 import type { Action, Input, Output, Schema } from './types.js';
+import { toActionId } from './action-utils.js';
 
 function normalizeAction(action: Action): Action {
     const sortTypes = <T extends Input | Output>(field: T): T => ({
@@ -93,7 +94,7 @@ function buildSummary(
 ): string {
     const fmt = (id: string) => {
         const [plugin, action] = id.split(':');
-        return `\`${plugin}:${action.replaceAll('_', '-')}\``;
+        return `\`${toActionId(plugin, action)}\``;
     };
 
     const lines: string[] = [`## QIIME 2 ${fromVersion} → ${toVersion}`];
@@ -146,14 +147,14 @@ export function diffSchemas(
     const fromActions = new Map<string, Action>();
     for (const [plugin, { actions }] of Object.entries(fromSchema.plugins)) {
         for (const [action, def] of Object.entries(actions)) {
-            fromActions.set(`${plugin}:${action}`, normalizeAction(def));
+            fromActions.set(toActionId(plugin, action), normalizeAction(def));
         }
     }
 
     const toActions = new Map<string, Action>();
     for (const [plugin, { actions }] of Object.entries(toSchema.plugins)) {
         for (const [action, def] of Object.entries(actions)) {
-            toActions.set(`${plugin}:${action}`, normalizeAction(def));
+            toActions.set(toActionId(plugin, action), normalizeAction(def));
         }
     }
 

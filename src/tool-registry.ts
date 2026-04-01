@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { normalizeActionIds, toActionId } from './action-utils.js';
+import { normalizeActionIds, toActionId, toDisplayName } from './action-utils.js';
 import { getGraph } from './graph-registry.js';
 import { AVAILABLE_VERSIONS, LATEST_VERSION, getSchema } from './schema-registry.js';
 import { diffSchemas } from './schema-diff.js';
@@ -29,7 +29,7 @@ const toMermaid = (
     const sanitize = (s: string) => s.replace(/"/g, "'");
     const fmtAction = (id: string) => {
         const [plugin, action] = id.split(':');
-        return `${plugin}:${action.replaceAll('_', '-')}`;
+        return `${toDisplayName(plugin)}:${toDisplayName(action)}`;
     };
 
     const lines = ['flowchart LR'];
@@ -101,7 +101,7 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
         async ({ distribution, version }: { distribution?: string; version?: string }) => {
             try {
                 const { graph } = getGraph(version);
-                const plugins = graph.getPlugins(distribution);
+                const plugins = graph.getPlugins(distribution).map(toDisplayName);
                 return {
                     content: [{ type: 'text', text: JSON.stringify(plugins, null, 2) }],
                 };
@@ -213,7 +213,7 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
                             {
                                 type: 'text',
                                 text: JSON.stringify({
-                                    error: `Action '${plugin_name}:${action_name}' not found.`,
+                                    error: `Action '${toActionId(plugin_name, action_name)}' not found.`,
                                 }),
                             },
                         ],
