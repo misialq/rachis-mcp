@@ -5,6 +5,7 @@ import { registerRachisTools } from '../src/tool-registry.js';
 interface ToolRegistration {
     description?: string;
     params?: unknown;
+    annotations?: unknown;
     handler: (...args: any[]) => Promise<any> | any;
 }
 
@@ -15,6 +16,7 @@ const registerTools = async () => {
             const [name, ...rest] = args;
             let description: string | undefined;
             let params: unknown;
+            let annotations: unknown;
             let handler: ToolRegistration['handler'] | undefined;
 
             if (typeof rest[0] === 'function') {
@@ -28,19 +30,24 @@ const registerTools = async () => {
                 handler = rest[1];
             } else if (typeof rest[2] === 'function') {
                 description = typeof rest[0] === 'string' ? rest[0] : undefined;
-                params = rest[1];
+                if (typeof rest[1] === 'object' && rest[1] !== null && !('safeParse' in (rest[1] as object))) {
+                    params = undefined;
+                    annotations = rest[1];
+                } else {
+                    params = rest[1];
+                }
                 handler = rest[2];
             } else if (typeof rest[3] === 'function') {
                 description = typeof rest[0] === 'string' ? rest[0] : undefined;
                 params = rest[1];
+                annotations = rest[2];
                 handler = rest[3];
             }
 
             if (!handler) {
                 throw new Error(`Failed to capture tool registration for ${String(name)}`);
             }
-
-            tools.set(name, { description, params, handler });
+            tools.set(name, { description, params, annotations, handler });
             return {};
         },
     };
@@ -51,6 +58,13 @@ const registerTools = async () => {
 
 const parseJsonText = (result: { content: Array<{ text: string }> }) =>
     JSON.parse(result.content[0].text);
+
+const expectedReadOnlyAnnotations = {
+    readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+};
 
 test('RachisMCP registers the expected tool surface', async () => {
     const tools = await registerTools();
@@ -68,6 +82,14 @@ test('RachisMCP registers the expected tool surface', async () => {
         'list_schema_versions',
         'list_semantic_types',
     ]);
+});
+
+test('RachisMCP registers read-only closed-world annotations for exposed tools', async () => {
+    const tools = await registerTools();
+
+    for (const registration of tools.values()) {
+        assert.deepEqual(registration.annotations, expectedReadOnlyAnnotations);
+    }
 });
 
 test('list_distributions and list_plugins return schema-backed results', async () => {

@@ -58,6 +58,13 @@ export interface ToolRegistrar {
     tool: (...args: any[]) => unknown;
 }
 
+const readOnlyQueryAnnotations = {
+    readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+};
+
 const versionParam = z
     .string()
     .optional()
@@ -70,6 +77,7 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
         'list_schema_versions',
         'Lists all available QIIME 2 schema versions and indicates which is the latest.',
         {},
+        readOnlyQueryAnnotations,
         async () => {
             return {
                 content: [
@@ -89,6 +97,7 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
             distribution: z.string().optional().describe('Optional distribution name to filter plugins'),
             version: versionParam,
         },
+        readOnlyQueryAnnotations,
         async ({ distribution, version }: { distribution?: string; version?: string }) => {
             try {
                 const { graph } = getGraph(version);
@@ -108,6 +117,7 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
         'list_distributions',
         'Lists all available Rachis distributions.',
         { version: versionParam },
+        readOnlyQueryAnnotations,
         async ({ version }: { version?: string }) => {
             try {
                 const { graph } = getGraph(version);
@@ -130,6 +140,7 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
             distribution: z.string().optional().describe('Optional distribution name to scope semantic types'),
             version: versionParam,
         },
+        readOnlyQueryAnnotations,
         async ({ distribution, version }: { distribution?: string; version?: string }) => {
             try {
                 const { graph } = getGraph(version);
@@ -152,6 +163,7 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
             type_name: z.string().describe('The name of the semantic type'),
             version: versionParam,
         },
+        readOnlyQueryAnnotations,
         async ({ type_name, version }: { type_name: string; version?: string }) => {
             try {
                 const { graph } = getGraph(version);
@@ -182,6 +194,7 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
             action_name: z.string().describe('The name of the action'),
             version: versionParam,
         },
+        readOnlyQueryAnnotations,
         async ({
             plugin_name,
             action_name,
@@ -224,6 +237,7 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
             plugin: z.string().optional().describe('Optional plugin name to scope the search'),
             version: versionParam,
         },
+        readOnlyQueryAnnotations,
         async ({
             semantic_type,
             distribution,
@@ -277,6 +291,7 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
                 .describe('Maximum number of candidate semantic types to return'),
             version: versionParam,
         },
+        readOnlyQueryAnnotations,
         async ({
             kind,
             distribution,
@@ -342,6 +357,7 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
                 .describe('Consumer matching mode. Defaults to required_inputs.'),
             version: versionParam,
         },
+        readOnlyQueryAnnotations,
         async ({
             types,
             distribution,
@@ -380,6 +396,7 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
                 .optional()
                 .describe('The base version to compare from. Defaults to the version preceding to_version.'),
         },
+        readOnlyQueryAnnotations,
         async ({ from_version, to_version }: { from_version?: string; to_version: string }) => {
             try {
                 const { schema: toSchema, version: tv } = getSchema(to_version);
@@ -418,6 +435,7 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
             plugin: z.string().optional().describe('Optional plugin name to scope producer search'),
             version: versionParam,
         },
+        readOnlyQueryAnnotations,
         async ({
             types,
             distribution,
