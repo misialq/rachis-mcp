@@ -14,24 +14,52 @@ Alternatively, you can use the command line below to get the remote MCP Server c
 npm create cloudflare@latest -- my-mcp-server --template=cloudflare/ai/demos/remote-mcp-authless
 ```
 
-## Customizing your MCP Server
+## Available Tools
 
-To add your own [tools](https://developers.cloudflare.com/agents/model-context-protocol/tools/) to the MCP server, define each tool inside the `init()` method of `src/index.ts` using `this.server.tool(...)`.
+This MCP server provides the following tools to interact with QIIME 2 schema versions, distributions, plugins, actions, and semantic types:
 
-## Input kind discovery
-
-Use `find_input_type_candidates` when the user knows the general kind of artifact they have but not the exact semantic type.
-
-Example:
-
-```json
-{
-  "kind": "reads",
-  "limit": 5
-}
-```
-
-The tool returns ranked semantic type candidates together with the actions that can consume each candidate type.
+- **`compare_versions`**: Compares two schema versions and returns added, removed, or changed actions.
+  - `to_version` (required, string)
+  - `from_version` (optional, string)
+- **`find_compatible_actions`**: Finds actions that accept a specific semantic type.
+  - `semantic_type` (required, string)
+  - `version` (optional, string)
+  - `plugin` (optional, string)
+  - `distribution` (optional, string)
+- **`find_consumers`**: Finds actions consuming specified artifact types.
+  - `types` (required, array)
+  - `match_mode` (optional, enum)
+  - `version` (optional, string)
+  - `plugin` (optional, string)
+  - `distribution` (optional, string)
+- **`find_input_type_candidates`**: Maps a free-text description of an input kind to likely semantic types and actions.
+  - `kind` (required, string)
+  - `limit` (optional, integer)
+  - `version` (optional, string)
+  - `plugin` (optional, string)
+  - `distribution` (optional, string)
+- **`find_producers`**: Finds actions that produce specified artifact types.
+  - `types` (required, array)
+  - `version` (optional, string)
+  - `plugin` (optional, string)
+  - `distribution` (optional, string)
+- **`get_action_details`**: Retrieves details, inputs, outputs, and parameters for an action.
+  - `plugin_name` (required, string)
+  - `action_name` (required, string)
+  - `version` (optional, string)
+- **`get_type_details`**: Retrieves description and details for a semantic type.
+  - `type_name` (required, string)
+  - `version` (optional, string)
+- **`list_distributions`**: Lists all available Rachis distributions.
+  - `version` (optional, string)
+- **`list_plugins`**: Lists all available Rachis plugins.
+  - `distribution` (optional, string)
+  - `version` (optional, string)
+- **`list_schema_versions`**: Lists available versions and identifies the latest.
+  - No parameters.
+- **`list_semantic_types`**: Lists all known semantic types.
+  - `distribution` (optional, string)
+  - `version` (optional, string)
 
 ## Connect to Cloudflare AI Playground
 
