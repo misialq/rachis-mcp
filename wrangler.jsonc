@@ -38,6 +38,11 @@
 			"pattern": "rachis-mcp.terrestryal.com",
 			"zone_name": "terrestryal.com",
 			"custom_domain": true
+		},
+		{
+			"pattern": "rachis-mcp.ziemski.dev",
+			"zone_name": "ziemski.dev",
+			"custom_domain": true
 		}
 	],
 	"workers_dev": true,
