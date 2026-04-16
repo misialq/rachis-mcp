@@ -1,4 +1,4 @@
-import type { Action, Parameter, Schema } from './types.js';
+import type { Action, Input, Parameter, Schema } from './types.js';
 import { isTypeCompatible, parseSemanticType, type ParsedSemanticType } from './semantic-type.js';
 import { toActionId, toDisplayName } from './action-utils.js';
 
@@ -328,10 +328,8 @@ export class KnowledgeGraph {
             for (const definitions of [details.inputs, details.outputs]) {
                 if (!definitions) continue;
 
-                for (const definition of Object.values(definitions) as Array<{ type?: string | string[] }>) {
-                    if (!definition.type) continue;
-
-                    const typeExpressions = Array.isArray(definition.type) ? definition.type : [definition.type];
+                for (const definition of Object.values(definitions)) {
+                    const typeExpressions = definition.type;
                     for (const typeExpression of typeExpressions) {
                         collectSchemaBackedTypesFromExpression(typeExpression, knownTypes, scopedTypes);
                     }
@@ -387,10 +385,7 @@ export class KnowledgeGraph {
             if (!details.inputs) continue;
 
             for (const [inputName, inputDef] of Object.entries(details.inputs)) {
-                const rawTypes = (inputDef as { type?: string | string[] }).type;
-                if (!rawTypes) continue;
-
-                const inputTypes = Array.isArray(rawTypes) ? rawTypes : [rawTypes];
+                const inputTypes = inputDef.type;
                 for (const inputType of inputTypes) {
                     const existing = usage.get(inputType) || {
                         inputNameCounts: new Map<string, number>(),
@@ -415,10 +410,8 @@ export class KnowledgeGraph {
         return usage;
     }
 
-    private matchesInputType(availableType: string, inputDef: { type?: any }): boolean {
-        if (!inputDef.type) return false;
-        const requiredTypes = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
-        return requiredTypes.some((requiredType: string) => this.checkCompatibility(availableType, requiredType));
+    private matchesInputType(availableType: string, inputDef: Input): boolean {
+        return inputDef.type.some((requiredType) => this.checkCompatibility(availableType, requiredType));
     }
 
     private hasCompatibleType(availableTypes: Set<string>, requiredType: string): boolean {
@@ -438,10 +431,8 @@ export class KnowledgeGraph {
         }
 
         let addedAny = false;
-        for (const outputDef of Object.values(actionDetails.outputs) as Array<{ type?: any }>) {
-            if (!outputDef.type) continue;
-            const outputTypes = Array.isArray(outputDef.type) ? outputDef.type : [outputDef.type];
-            for (const outputType of outputTypes) {
+        for (const outputDef of Object.values(actionDetails.outputs)) {
+            for (const outputType of outputDef.type) {
                 availableTypes.add(outputType);
                 addedAny = true;
             }
@@ -469,7 +460,7 @@ export class KnowledgeGraph {
             if (pluginFilter && !pluginFilter.has(plugin)) continue;
             if (!details.inputs) continue;
 
-            const actionInputs = Object.values(details.inputs) as { type?: any, required?: boolean }[];
+            const actionInputs = Object.values(details.inputs);
             if (actionInputs.length === 0) continue;
 
             const requiredInputs = actionInputs.filter((inputDef) => inputDef.required);
@@ -508,11 +499,9 @@ export class KnowledgeGraph {
             if (pluginFilter && !pluginFilter.has(plugin)) continue;
             if (!details.inputs) continue;
 
-            const actionInputs = Object.values(details.inputs) as Array<{ type?: string | string[] }>;
+            const actionInputs = Object.values(details.inputs);
             const matchesAnyInput = actionInputs.some((inputDef) => {
-                if (!inputDef.type) return false;
-                const requiredTypes = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
-                return requiredTypes.some((requiredType) => this.checkCompatibility(semanticType, requiredType));
+                return inputDef.type.some((requiredType) => this.checkCompatibility(semanticType, requiredType));
             });
 
             if (matchesAnyInput) {
@@ -686,20 +675,13 @@ export class KnowledgeGraph {
                 let matchedObj = false;
 
                 for (let i = 0; i < actionOutputs.length; i++) {
-                    const outputDef = actionOutputs[i] as any;
-                    
-                    if (outputUsage[i] > 0) continue; 
+                    const outputDef = actionOutputs[i];
 
-                    let typeCompatible = false;
-                    if (outputDef.type) {
-                        const outputTypes = Array.isArray(outputDef.type) ? outputDef.type : [outputDef.type];
-                        for (const availType of outputTypes) {
-                            if (this.checkCompatibility(availType, reqType)) {
-                                typeCompatible = true;
-                                break;
-                            }
-                        }
-                    }
+                    if (outputUsage[i] > 0) continue;
+
+                    const typeCompatible = outputDef.type.some((availType) =>
+                        this.checkCompatibility(availType, reqType)
+                    );
 
                     if (typeCompatible) {
                         outputUsage[i]++;
@@ -777,21 +759,17 @@ export class KnowledgeGraph {
                 const requiredInputs = Object.values(details.inputs)
                     .filter((inputDef) => inputDef.required);
                 const allSatisfied = requiredInputs.every((inputDef) => {
-                    const types = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
-                    return types.some((reqType: string) => this.hasCompatibleType(availableTypes, reqType));
+                    return inputDef.type.some((reqType) => this.hasCompatibleType(availableTypes, reqType));
                 });
                 if (!allSatisfied) continue;
 
                 usedActions.add(key);
                 actionDepth.set(key, depth);
 
-                if (details.outputs) {
-                    for (const outputDef of Object.values(details.outputs)) {
-                        const outputTypes = Array.isArray(outputDef.type) ? outputDef.type : [outputDef.type];
-                        for (const outputType of outputTypes) {
-                            if (!availableTypes.has(outputType)) {
-                                newTypes.add(outputType);
-                            }
+                for (const outputDef of Object.values(details.outputs)) {
+                    for (const outputType of outputDef.type) {
+                        if (!availableTypes.has(outputType)) {
+                            newTypes.add(outputType);
                         }
                     }
                 }
@@ -855,7 +833,7 @@ export class KnowledgeGraph {
 
             for (const inputDef of Object.values(details.inputs)) {
                 if (!inputDef.required) continue;
-                const acceptedTypes = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
+                const acceptedTypes = inputDef.type;
 
                 // Only skip to startTypes if no plan step produces a compatible type.
                 // When a plan step can directly satisfy this input (e.g. bin_contigs_metabat →
@@ -1046,21 +1024,21 @@ export class KnowledgeGraph {
             for (const inputDef of Object.values(actionDetails.inputs)) {
                 if (!inputDef.required) continue;
 
-                const acceptedTypes = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
+                const acceptedTypes = inputDef.type;
 
-                if (acceptedTypes.some((t: string) => this.hasCompatibleType(startTypes, t))) {
+                if (acceptedTypes.some((t) => this.hasCompatibleType(startTypes, t))) {
                     continue;
                 }
 
                 // Only consider outputs from actions at earlier depths to avoid
                 // circular dependencies (an action's own outputs satisfying its inputs)
                 const planAvailable = this.computePlanAvailableTypes(startTypes, neededActions, currentDepth);
-                if (acceptedTypes.some((t: string) => this.hasCompatibleType(planAvailable, t))) {
+                if (acceptedTypes.some((t) => this.hasCompatibleType(planAvailable, t))) {
                     continue;
                 }
 
                 const inputMatch = this.selectBestProducer(
-                    (t) => acceptedTypes.some((req: string) => this.checkCompatibility(t, req)),
+                    (t) => acceptedTypes.some((req) => this.checkCompatibility(t, req)),
                     startTypes, usedActions, actionDepth, bfsPluginFilter, includePreference, neededActions
                 );
                 if (inputMatch) {
@@ -1092,8 +1070,7 @@ export class KnowledgeGraph {
 
             let matchedType: string | null = null;
             for (const outputDef of Object.values(details.outputs)) {
-                const types = Array.isArray(outputDef.type) ? outputDef.type : [outputDef.type];
-                for (const t of types) {
+                for (const t of outputDef.type) {
                     if (isCompatibleOutput(t)) { matchedType = t; break; }
                 }
                 if (matchedType) break;
@@ -1113,10 +1090,9 @@ export class KnowledgeGraph {
 
             if (existingEntries.length > 0) {
                 // Self-circular check: don't use own output to satisfy own input
-                const reqInputs = Object.values(details.inputs || {}).filter((i) => i.required);
+                const reqInputs = Object.values(details.inputs).filter((i) => i.required);
                 const selfCircular = reqInputs.some((inputDef) => {
-                    const inputTypes = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
-                    return inputTypes.some((t: string) => this.checkCompatibility(matchedType, t));
+                    return inputDef.type.some((t) => this.checkCompatibility(matchedType, t));
                 });
                 if (selfCircular) {
                     continue;
@@ -1137,14 +1113,13 @@ export class KnowledgeGraph {
             }
 
             // Score by fraction of required inputs already available from the plan
-            const reqInputs = Object.values(details.inputs || {}).filter((i) => i.required);
+            const reqInputs = Object.values(details.inputs).filter((i) => i.required);
             let score: number;
             if (reqInputs.length === 0) {
                 score = 100;
             } else {
                 const satisfied = reqInputs.filter((inputDef) => {
-                    const types = Array.isArray(inputDef.type) ? inputDef.type : [inputDef.type];
-                    return types.some((t: string) => this.hasCompatibleType(planAvailable, t));
+                    return inputDef.type.some((t) => this.hasCompatibleType(planAvailable, t));
                 }).length;
                 score = (satisfied / reqInputs.length) * 100;
             }
@@ -1174,8 +1149,7 @@ export class KnowledgeGraph {
             const details = this.getAction(entry.plugin, entry.action);
             if (!details?.outputs) continue;
             for (const outputDef of Object.values(details.outputs)) {
-                const types = Array.isArray(outputDef.type) ? outputDef.type : [outputDef.type];
-                for (const t of types) available.add(t);
+                for (const t of outputDef.type) available.add(t);
             }
         }
         return available;
@@ -1258,12 +1232,11 @@ export class KnowledgeGraph {
     private outputTypesSharePort(action: Action, typeA: string, typeB: string): boolean {
         if (!action.outputs) return false;
         for (const outputDef of Object.values(action.outputs)) {
-            const types = Array.isArray(outputDef.type) ? outputDef.type : [outputDef.type];
-            if (types.length <= 1) continue;
-            const matchesA = types.some((t) =>
+            if (outputDef.type.length <= 1) continue;
+            const matchesA = outputDef.type.some((t) =>
                 this.checkCompatibility(t, typeA) || this.checkCompatibility(typeA, t)
             );
-            const matchesB = types.some((t) =>
+            const matchesB = outputDef.type.some((t) =>
                 this.checkCompatibility(t, typeB) || this.checkCompatibility(typeB, t)
             );
             if (matchesA && matchesB) return true;

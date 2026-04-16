@@ -31,7 +31,7 @@ export interface Distribution {
 }
 
 export interface Schema {
-  qiime2_version?: string;
+  rachis_version?: string;
   plugins: Record<string, Plugin>;
   distributions: Record<string, Distribution>;
   types: Record<string, string>;

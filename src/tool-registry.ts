@@ -69,13 +69,13 @@ const versionParam = z
     .string()
     .optional()
     .describe(
-        `QIIME 2 schema version to query (e.g. "${LATEST_VERSION}"). Omit to use the latest available.`
+        `Rachis schema version to query (e.g. "${LATEST_VERSION}"). Omit to use the latest available.`
     );
 
 export const registerRachisTools = (server: ToolRegistrar): void => {
     server.tool(
         'list_schema_versions',
-        'Lists all available QIIME 2 schema versions and indicates which is the latest.',
+        'Lists all available Rachis schema versions and indicates which is the latest.',
         {},
         readOnlyQueryAnnotations,
         async () => {
@@ -388,7 +388,7 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
 
     server.tool(
         'compare_versions',
-        'Compares two QIIME 2 schema versions and returns actions that were added, removed, or had their interface (inputs, parameters, outputs) changed. If from_version is omitted, the version immediately preceding to_version is used.',
+        'Compares two Rachis schema versions and returns actions that were added, removed, or had their interface (inputs, parameters, outputs) changed. If from_version is omitted, the version immediately preceding to_version is used.',
         {
             to_version: z.string().describe('The target version to compare to (e.g. "2025.4")'),
             from_version: z
