@@ -1,8 +1,33 @@
 # Rachis MCP
 
+An MCP server for exploring the Rachis ecosystem — browse distributions, plugins, semantic types, and actions, trace type compatibility, and diff release versions.
+
+## Usage
+
+Add to your MCP client config:
+
+```json
+{
+  "mcpServers": {
+    "rachis": {
+      "url": "https://rachis-mcp.ziemski.dev/mcp"
+    }
+  }
+}
+```
+
+## Development
+
+```bash
+npm install
+npm run dev      # local dev server (wrangler)
+npm test         # run tests
+npm run deploy   # deploy to Cloudflare Workers
+```
+
 ## Available Tools
 
-This MCP server provides the following tools to interact with Rachis versions, distributions, plugins, actions, and semantic types:
+This MCP server provides the following tools to interact with Rachis release versions, distributions, plugins, actions, and semantic types:
 
 - **`compare_versions`**: Compares two schema (release) versions and returns added, removed, or changed actions.
   - `to_version` (required, string)
