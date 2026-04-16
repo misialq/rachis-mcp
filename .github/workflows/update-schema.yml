@@ -24,9 +24,9 @@ jobs:
           python-version: '3.10'
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.3.0
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Run Tiny Introspection
         id: tiny
@@ -96,6 +96,7 @@ jobs:
 
           version    = '${{ inputs.version }}'
           outcomes   = {
+              'tiny':        '${{ steps.tiny.outcome }}',
               'moshpit':     '${{ steps.moshpit.outcome }}',
               'amplicon':    '${{ steps.amplicon.outcome }}',
               'pathogenome': '${{ steps.pathogenome.outcome }}',
