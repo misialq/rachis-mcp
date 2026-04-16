@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Scans src/schemas/ for qiime2-*.json files and generates src/schema-registry.ts.
+// Scans src/schemas/ for rachis-*.json files and generates src/schema-registry.ts.
 // Run automatically via the prebuild/predev npm hooks — no manual edits needed.
 
 import { readdirSync, writeFileSync } from 'fs';
@@ -10,15 +10,15 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const schemasDir = join(root, 'src', 'schemas');
 const outputFile = join(root, 'src', 'schema-registry.ts');
 
-const files = readdirSync(schemasDir).filter((f) => /^qiime2-[\d.]+\.json$/.test(f));
+const files = readdirSync(schemasDir).filter((f) => /^rachis-[\d.]+\.json$/.test(f));
 
 if (files.length === 0) {
-    console.error('No qiime2-*.json files found in src/schemas/');
+    console.error('No rachis-*.json files found in src/schemas/');
     process.exit(1);
 }
 
 const versions = files
-    .map((f) => f.replace('qiime2-', '').replace('.json', ''))
+    .map((f) => f.replace('rachis-', '').replace('.json', ''))
     .sort((a, b) => {
         const [ay, am] = a.split('.').map(Number);
         const [by, bm] = b.split('.').map(Number);
@@ -28,7 +28,7 @@ const versions = files
 const latest = versions.at(-1);
 
 const imports = versions
-    .map((v, i) => `import schema_${i} from './schemas/qiime2-${v}.json';`)
+    .map((v, i) => `import schema_${i} from './schemas/rachis-${v}.json';`)
     .join('\n');
 
 const entries = versions
@@ -51,7 +51,7 @@ export const AVAILABLE_VERSIONS: string[] = Object.keys(REGISTRY);
 export function getSchema(version?: string): { schema: Schema; version: string } {
     const v = version ?? LATEST_VERSION;
     if (!(v in REGISTRY)) {
-        throw new Error(\`Unknown QIIME 2 version "\${v}". Available: \${AVAILABLE_VERSIONS.join(', ')}\`);
+        throw new Error(\`Unknown Rachis version "\${v}". Available: \${AVAILABLE_VERSIONS.join(', ')}\`);
     }
     return { schema: REGISTRY[v], version: v };
 }

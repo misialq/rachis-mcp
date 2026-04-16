@@ -97,7 +97,7 @@ function buildSummary(
         return `\`${toActionId(plugin, action)}\``;
     };
 
-    const lines: string[] = [`## QIIME 2 ${fromVersion} → ${toVersion}`];
+    const lines: string[] = [`## Rachis ${fromVersion} → ${toVersion}`];
 
     if (added.length === 0 && removed.length === 0 && changed.length === 0) {
         lines.push('\nNo changes detected.');
