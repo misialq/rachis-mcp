@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'QIIME 2 version (e.g. 2026.4)'
+        description: 'Rachis version (e.g. 2026.4)'
         required: true
         type: string
 
@@ -28,6 +28,13 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Run Tiny Introspection
+        id: tiny
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/mnt quay.io/qiime2/tiny:${{ inputs.version }} \
+            python /mnt/.github/scripts/introspect_plugins.py > tiny.json
+          docker rmi quay.io/qiime2/tiny:${{ inputs.version }}
+      
       - name: Run Moshpit Introspection
         id: moshpit
         run: |
@@ -53,14 +60,14 @@ jobs:
       - name: Merge and Format Schema
         run: |
           python .github/scripts/merge_schemas.py raw_schema.json \
-            moshpit=moshpit.json amplicon=amplicon.json pathogenome=pathogenome.json
+            tiny=tiny.json moshpit=moshpit.json amplicon=amplicon.json pathogenome=pathogenome.json
           python - << 'EOF'
           import json
           with open('raw_schema.json') as f:
               data = json.load(f)
-          data['qiime2_version'] = '${{ inputs.version }}'
+          data['rachis_version'] = '${{ inputs.version }}'
           import os; os.makedirs('src/schemas', exist_ok=True)
-          with open('src/schemas/qiime2-${{ inputs.version }}.json', 'w') as f:
+          with open('src/schemas/rachis-${{ inputs.version }}.json', 'w') as f:
               json.dump(data, f, indent=4)
           EOF
 
@@ -70,7 +77,7 @@ jobs:
       - name: Check for changes
         id: git-check
         run: |
-          git add src/schemas/qiime2-${{ inputs.version }}.json src/schema-registry.ts
+          git add src/schemas/rachis-${{ inputs.version }}.json src/schema-registry.ts
           git diff --cached --exit-code || echo "changes=true" >> $GITHUB_OUTPUT
 
       - name: Commit and Push
@@ -78,7 +85,7 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git commit -m "chore: add schema for QIIME 2 ${{ inputs.version }}"
+          git commit -m "chore: add schema for Rachis ${{ inputs.version }}"
           git push
 
       - name: Write Job Summary
@@ -99,7 +106,7 @@ jobs:
               return {'success': '✅', 'failure': '❌', 'skipped': '⏭️'}.get(outcome, '❓')
 
           # Schema stats (best-effort — file may not exist if an earlier step failed)
-          schema_path = f'src/schemas/qiime2-{version}.json'
+          schema_path = f'src/schemas/rachis-{version}.json'
           stats = None
           if os.path.exists(schema_path):
               with open(schema_path) as f:
@@ -112,16 +119,16 @@ jobs:
 
           # All known versions (sorted numerically)
           files = sorted(
-              glob.glob('src/schemas/qiime2-*.json'),
+              glob.glob('src/schemas/rachis-*.json'),
               key=lambda f: [int(x) for x in
-                  os.path.basename(f).replace('qiime2-', '').replace('.json', '').split('.')]
+                  os.path.basename(f).replace('rachis-', '').replace('.json', '').split('.')]
           )
-          versions = [os.path.basename(f).replace('qiime2-', '').replace('.json', '') for f in files]
+          versions = [os.path.basename(f).replace('rachis-', '').replace('.json', '') for f in files]
           latest = versions[-1] if versions else '—'
 
           # New version or update?
           existed = subprocess.run(
-              ['git', 'cat-file', '-e', f'HEAD~1:src/schemas/qiime2-{version}.json'],
+              ['git', 'cat-file', '-e', f'HEAD~1:src/schemas/rachis-{version}.json'],
               capture_output=True
           ).returncode == 0
           change_label = '🔄 Updated existing version' if existed else '🆕 New version added'
@@ -129,7 +136,7 @@ jobs:
               change_label = '➖ No changes detected'
 
           lines = [
-              f'## Schema Update: QIIME 2 {version}',
+              f'## Schema Update: Rachis {version}',
               '',
               '### Introspection',
               '| Distribution | Outcome |',
