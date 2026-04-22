@@ -42,12 +42,12 @@ jobs:
             python /mnt/.github/scripts/introspect_plugins.py > moshpit.json
           docker rmi quay.io/qiime2/moshpit:${{ inputs.version }}
 
-      - name: Run Amplicon Introspection
+      - name: Run QIIME2 Introspection
         id: amplicon
         run: |
-          docker run --rm -v ${{ github.workspace }}:/mnt quay.io/qiime2/amplicon:${{ inputs.version }} \
-            python /mnt/.github/scripts/introspect_plugins.py > amplicon.json
-          docker rmi quay.io/qiime2/amplicon:${{ inputs.version }}
+          docker run --rm -v ${{ github.workspace }}:/mnt quay.io/qiime2/qiime2:${{ inputs.version }} \
+            python /mnt/.github/scripts/introspect_plugins.py > qiime2.json
+          docker rmi quay.io/qiime2/qiime2:${{ inputs.version }}
 
       - name: Run Pathogenome Introspection
         id: pathogenome
@@ -60,7 +60,7 @@ jobs:
       - name: Merge and Format Schema
         run: |
           python .github/scripts/merge_schemas.py raw_schema.json \
-            tiny=tiny.json moshpit=moshpit.json amplicon=amplicon.json pathogenome=pathogenome.json
+            tiny=tiny.json moshpit=moshpit.json qiime2=qiime2.json pathogenome=pathogenome.json
           python - << 'EOF'
           import json
           with open('raw_schema.json') as f:
@@ -98,7 +98,7 @@ jobs:
           outcomes   = {
               'tiny':        '${{ steps.tiny.outcome }}',
               'moshpit':     '${{ steps.moshpit.outcome }}',
-              'amplicon':    '${{ steps.amplicon.outcome }}',
+              'qiime2':      '${{ steps.qiime2.outcome }}',
               'pathogenome': '${{ steps.pathogenome.outcome }}',
           }
           committed  = '${{ steps.git-check.outputs.changes }}' == 'true'
