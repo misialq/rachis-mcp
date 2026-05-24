@@ -1,9 +1,17 @@
 
+import argparse
 import json
 import os
 import tempfile
 import sys
 import re
+
+parser = argparse.ArgumentParser(description="Introspect installed QIIME 2 plugins.")
+parser.add_argument(
+    "--only",
+    help="Only emit schema data for this plugin id. Exits nonzero if the plugin is not installed.",
+)
+args = parser.parse_args()
 
 try:
     import qiime2.sdk
@@ -20,7 +28,15 @@ pm = qiime2.sdk.PluginManager()
 
 data = {}
 
-for name, plugin in pm.plugins.items():
+plugins = pm.plugins
+if args.only:
+    if args.only not in plugins:
+        print(f"Plugin '{args.only}' not found in the active QIIME 2 environment.", file=sys.stderr)
+        print(f"Available plugins: {', '.join(sorted(plugins))}", file=sys.stderr)
+        sys.exit(1)
+    plugins = {args.only: plugins[args.only]}
+
+for name, plugin in plugins.items():
     plugin_data = {'actions': {}}
     
     for action_name, action in plugin.actions.items():

@@ -9,7 +9,85 @@ on:
         type: string
 
 jobs:
+  standalone-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      has_plugins: ${{ steps.matrix.outputs.has_plugins }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build standalone plugin matrix
+        id: matrix
+        run: |
+          python - << 'EOF'
+          import json, os
+          path = '.github/standalone-plugins.json'
+          plugins = []
+          if os.path.exists(path):
+              with open(path) as f:
+                  for plugin in json.load(f):
+                      if plugin.get('name') and plugin.get('repo'):
+                          plugins.append({
+                              'name': plugin['name'],
+                              'repo': plugin['repo'],
+                              'ref': plugin.get('ref', 'main'),
+                              'env_dir': plugin.get('env_dir', 'environment-files'),
+                              'env_selection': plugin.get('env_selection', 'latest'),
+                          })
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f"has_plugins={'true' if plugins else 'false'}\n")
+              out.write(f"matrix={json.dumps({'include': plugins})}\n")
+          EOF
+
+  introspect-standalone:
+    needs: standalone-matrix
+    if: needs.standalone-matrix.outputs.has_plugins == 'true'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.standalone-matrix.outputs.matrix) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up micromamba
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          init-shell: bash
+          cache-downloads: true
+
+      - name: Run Standalone Plugin Introspection
+        shell: bash -el {0}
+        run: |
+          python .github/scripts/introspect_standalone_plugins.py \
+            --version '${{ inputs.version }}' \
+            --plugin-name '${{ matrix.name }}' \
+            --repo '${{ matrix.repo }}' \
+            --ref '${{ matrix.ref }}' \
+            --env-dir '${{ matrix.env_dir }}' \
+            --env-selection '${{ matrix.env_selection }}' \
+            --output 'standalone-${{ matrix.name }}.json' \
+            --summary 'standalone-${{ matrix.name }}.md'
+
+      - name: Upload Standalone Plugin Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: standalone-${{ matrix.name }}
+          path: |
+            standalone-${{ matrix.name }}.json
+            standalone-${{ matrix.name }}.md
+            standalone-${{ matrix.name }}.summary.json
+          if-no-files-found: warn
+
   update-schema:
+    needs:
+      - standalone-matrix
+      - introspect-standalone
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -57,10 +135,44 @@ jobs:
             python /mnt/.github/scripts/introspect_plugins.py > pathogenome.json
           docker rmi quay.io/qiime2/pathogenome:${{ inputs.version }}
 
-      - name: Merge and Format Schema
+      - name: Download Standalone Plugin Artifacts
+        uses: actions/download-artifact@v4
+        if: always()
+        continue-on-error: true
+        with:
+          path: standalone-artifacts
+          pattern: standalone-*
+
+      - name: Combine Standalone Plugin Artifacts
+        id: standalone
+        if: always()
+        shell: bash -el {0}
         run: |
+          python .github/scripts/introspect_standalone_plugins.py \
+            --version '${{ inputs.version }}' \
+            --combine-artifacts standalone-artifacts \
+            --output standalone.json \
+            --summary standalone-summary.md
+
+      - name: Merge and Format Schema
+        shell: bash
+        run: |
+          standalone_arg=()
+          if python - << 'EOF'
+          import json, os, sys
+          path = 'standalone.json'
+          if not os.path.exists(path):
+              sys.exit(1)
+          with open(path) as f:
+              data = json.load(f)
+          sys.exit(0 if data else 1)
+          EOF
+          then
+            standalone_arg=(standalone=standalone.json)
+          fi
+
           python .github/scripts/merge_schemas.py raw_schema.json \
-            tiny=tiny.json moshpit=moshpit.json qiime2=qiime2.json pathogenome=pathogenome.json
+            tiny=tiny.json moshpit=moshpit.json qiime2=qiime2.json pathogenome=pathogenome.json "${standalone_arg[@]}"
           python - << 'EOF'
           import json
           with open('raw_schema.json') as f:
@@ -100,6 +212,7 @@ jobs:
               'moshpit':     '${{ steps.moshpit.outcome }}',
               'qiime2':      '${{ steps.qiime2.outcome }}',
               'pathogenome': '${{ steps.pathogenome.outcome }}',
+              'standalone':  '${{ steps.standalone.outcome }}',
           }
           committed  = '${{ steps.git-check.outputs.changes }}' == 'true'
 
@@ -145,6 +258,11 @@ jobs:
           ]
           for dist, outcome in outcomes.items():
               lines.append(f'| `{dist}` | {icon(outcome)} {outcome.capitalize()} |')
+
+          standalone_summary = 'standalone-summary.md'
+          if os.path.exists(standalone_summary):
+              with open(standalone_summary) as f:
+                  lines += ['', f.read().strip()]
 
           if stats:
               lines += [

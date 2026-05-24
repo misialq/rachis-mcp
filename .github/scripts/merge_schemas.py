@@ -2,6 +2,8 @@ import json
 import sys
 import os
 
+STANDALONE_DISTRIBUTION = "standalone"
+
 def merge_schemas(distribution_files, output_file):
     """
     Merges multiple Rachis plugin schema JSON files into a single dictionary
@@ -27,14 +29,25 @@ def merge_schemas(distribution_files, output_file):
             with open(filepath, 'r') as f:
                 data = json.load(f)
                 
-                # record plugins for this distribution
-                final_schema["distributions"][dist_name] = {"plugins": list(data.keys())}
+                dist_plugins = []
 
                 # Merge plugins into the main registry
                 for plugin_name, plugin_content in data.items():
+                    if dist_name == STANDALONE_DISTRIBUTION and plugin_name in final_schema["plugins"]:
+                        print(
+                            f"Warning: Standalone plugin '{plugin_name}' already exists in an official distribution. Skipping.",
+                            file=sys.stderr
+                        )
+                        continue
+
+                    dist_plugins.append(plugin_name)
+
                     if plugin_name not in final_schema["plugins"]:
                         # New plugin, add it whole
                         final_schema["plugins"][plugin_name] = plugin_content
+                        if 'types' in plugin_content:
+                             # 'types' is { TypeName: Description }
+                             final_schema["types"].update(plugin_content['types'])
                     else:
                         # Existing plugin, merge actions
                         target_plugin = final_schema["plugins"][plugin_name]
@@ -53,6 +66,9 @@ def merge_schemas(distribution_files, output_file):
                         if 'types' in plugin_content:
                              # 'types' is { TypeName: Description }
                              final_schema["types"].update(plugin_content['types'])
+
+                # record plugins for this distribution after duplicate filtering
+                final_schema["distributions"][dist_name] = {"plugins": dist_plugins}
                         
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON from {filepath}: {e}", file=sys.stderr)
