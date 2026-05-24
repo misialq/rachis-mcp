@@ -61,6 +61,10 @@ This MCP server provides the following tools to interact with Rachis release ver
 - **`get_type_details`**: Retrieves description and details for a semantic type.
   - `type_name` (required, string)
   - `version` (optional, string)
+- **`list_actions`**: Lists all actions available in a specified distribution.
+  - `distribution` (required, string)
+  - `plugin` (optional, string)
+  - `version` (optional, string)
 - **`list_distributions`**: Lists all available Rachis distributions.
   - `version` (optional, string)
 - **`list_plugins`**: Lists all available Rachis plugins.
