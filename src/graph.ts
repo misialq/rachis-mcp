@@ -351,8 +351,8 @@ export class KnowledgeGraph {
 			.sort((left, right) => left.type_name.localeCompare(right.type_name));
 	}
 
-	listActions(filters: {
-		distribution: string;
+	listActions(filters?: {
+		distribution?: string;
 		plugin?: string;
 	}): { plugin: string; action: string }[] {
 		const pluginFilter = this.resolvePluginFilter(filters);

@@ -142,9 +142,9 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
 
 	server.tool(
 		"list_actions",
-		"Lists all actions available in a specified distribution. Optionally filter by plugin name.",
+		"Lists all actions available in QIIME 2. Optionally filter by distribution or plugin name.",
 		{
-			distribution: z.string().describe("The distribution name to list actions from"),
+			distribution: z.string().optional().describe("Optional distribution name to filter actions"),
 			plugin: z.string().optional().describe("Optional plugin name to filter actions"),
 			version: versionParam,
 		},
@@ -154,7 +154,7 @@ export const registerRachisTools = (server: ToolRegistrar): void => {
 			plugin,
 			version,
 		}: {
-			distribution: string;
+			distribution?: string;
 			plugin?: string;
 			version?: string;
 		}) => {
