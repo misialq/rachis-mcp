@@ -2,6 +2,9 @@
 	"name": "rachis-mcp",
 	"version": "0.0.1",
 	"private": true,
+	"bin": {
+		"rachis-mcp": "bin/rachis-mcp.js"
+	},
 	"scripts": {
 		"predeploy": "node scripts/generate-schema-registry.mjs",
 		"deploy": "wrangler deploy",
@@ -13,9 +16,12 @@
 		"test": "npm run test:build && node --test .tmp-tests/tests/*.test.js",
 		"test:build": "rm -rf .tmp-tests && tsc -p tsconfig.test.json && cp -r src/schemas .tmp-tests/src/schemas",
 		"cf-typegen": "wrangler types",
-		"type-check": "tsc --noEmit"
+		"type-check": "tsc --noEmit",
+		"build:local": "node scripts/generate-schema-registry.mjs && tsc -p tsconfig.build.json && cp -r src/schemas dist/src/schemas && chmod +x bin/rachis-mcp.js",
+		"start:local": "node dist/src/stdio.js"
 	},
 	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.26.0",
 		"agents": "^0.4.1",
 		"zod": "^4.3.6"
 	},

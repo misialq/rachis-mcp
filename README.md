@@ -4,7 +4,9 @@ An MCP server for exploring the Rachis ecosystem — browse distributions, plugi
 
 ## Usage
 
-Add to your MCP client config:
+### Option 1: Cloudflare Deployment (Hosted)
+
+Add to your MCP client config (e.g. Claude Desktop):
 
 ```json
 {
@@ -16,13 +18,53 @@ Add to your MCP client config:
 }
 ```
 
+### Option 2: Local Stdio Execution
+
+You can run Rachis MCP locally over stdio. 
+
+#### Via `npx` (No installation needed)
+
+Add to your MCP client config:
+
+```json
+{
+  "mcpServers": {
+    "rachis": {
+      "command": "npx",
+      "args": ["-y", "rachis-mcp"]
+    }
+  }
+}
+```
+
+#### Running/Building from Source
+
+1. Clone and build the project:
+   ```bash
+   npm install
+   npm run build:local
+   ```
+2. Configure your client to use the built local server:
+   ```json
+   {
+     "mcpServers": {
+       "rachis": {
+         "command": "node",
+         "args": ["/Users/michal/Repos/rachis-mcp/dist/src/stdio.js"]
+       }
+     }
+   }
+   ```
+
 ## Development
 
 ```bash
 npm install
-npm run dev      # local dev server (wrangler)
-npm test         # run tests
-npm run deploy   # deploy to Cloudflare Workers
+npm run dev          # local dev server (wrangler)
+npm run build:local  # build local stdio binary
+npm run start:local  # run local stdio server directly
+npm test             # run tests
+npm run deploy       # deploy to Cloudflare Workers
 ```
 
 ## Available Tools
