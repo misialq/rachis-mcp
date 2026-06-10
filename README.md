@@ -56,6 +56,42 @@ Add to your MCP client config:
    }
    ```
 
+### Option 3: Docker
+
+Run the stdio server inside a container — the MCP client launches `docker run -i` and communicates over stdin/stdout.
+
+Use the prebuilt image from GitHub Container Registry (no build required):
+
+```json
+{
+  "mcpServers": {
+    "rachis": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "ghcr.io/misialq/rachis-mcp"]
+    }
+  }
+}
+```
+
+Or build the image yourself from a checkout:
+
+```bash
+docker build -t rachis-mcp .
+```
+
+```json
+{
+  "mcpServers": {
+    "rachis": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "rachis-mcp"]
+    }
+  }
+}
+```
+
+`-i` keeps stdin open (required for stdio transport) and `--rm` removes the container when the client disconnects.
+
 ## Development
 
 ```bash

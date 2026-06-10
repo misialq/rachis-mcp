@@ -1,0 +1,10 @@
+node_modules
+dist
+.tmp-tests
+.wrangler
+.git
+.github
+.vscode
+worker-configuration.d.ts
+*.log
+.DS_Store
