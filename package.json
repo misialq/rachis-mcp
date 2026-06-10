@@ -1,6 +1,6 @@
 {
 	"name": "@misialq/rachis-mcp",
-	"version": "0.0.1",
+	"version": "2026.4.0",
 	"description": "An MCP server for exploring the Rachis ecosystem — browse distributions, plugins, semantic types, and actions, trace type compatibility, and diff release versions.",
 	"license": "MIT",
 	"repository": {

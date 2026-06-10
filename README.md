@@ -31,7 +31,7 @@ Add to your MCP client config:
   "mcpServers": {
     "rachis": {
       "command": "npx",
-      "args": ["-y", "rachis-mcp"]
+      "args": ["-y", "@misialq/rachis-mcp"]
     }
   }
 }
@@ -50,7 +50,7 @@ Add to your MCP client config:
      "mcpServers": {
        "rachis": {
          "command": "node",
-         "args": ["/Users/michal/Repos/rachis-mcp/dist/src/stdio.js"]
+         "args": ["/absolute/path/to/rachis-mcp/dist/src/stdio.js"]
        }
      }
    }
@@ -103,8 +103,8 @@ This MCP server provides the following tools to interact with Rachis release ver
 - **`get_type_details`**: Retrieves description and details for a semantic type.
   - `type_name` (required, string)
   - `version` (optional, string)
-- **`list_actions`**: Lists all actions available in a specified distribution.
-  - `distribution` (required, string)
+- **`list_actions`**: Lists all available actions. Optionally filter by distribution or plugin name.
+  - `distribution` (optional, string)
   - `plugin` (optional, string)
   - `version` (optional, string)
 - **`list_distributions`**: Lists all available Rachis distributions.
