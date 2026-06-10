@@ -1,11 +1,24 @@
 {
-	"name": "rachis-mcp",
+	"name": "@misialq/rachis-mcp",
 	"version": "0.0.1",
-	"private": true,
+	"description": "An MCP server for exploring the Rachis ecosystem — browse distributions, plugins, semantic types, and actions, trace type compatibility, and diff release versions.",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/misialq/rachis-mcp.git"
+	},
 	"bin": {
 		"rachis-mcp": "bin/rachis-mcp.js"
 	},
+	"files": [
+		"bin/rachis-mcp.js",
+		"dist"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
+		"prepack": "npm run build:local",
 		"predeploy": "node scripts/generate-schema-registry.mjs",
 		"deploy": "wrangler deploy",
 		"predev": "node scripts/generate-schema-registry.mjs",
@@ -17,7 +30,7 @@
 		"test:build": "rm -rf .tmp-tests && tsc -p tsconfig.test.json && cp -r src/schemas .tmp-tests/src/schemas",
 		"cf-typegen": "wrangler types",
 		"type-check": "tsc --noEmit",
-		"build:local": "node scripts/generate-schema-registry.mjs && tsc -p tsconfig.build.json && cp -r src/schemas dist/src/schemas && chmod +x bin/rachis-mcp.js",
+		"build:local": "rm -rf dist && node scripts/generate-schema-registry.mjs && tsc -p tsconfig.build.json && mkdir -p dist/src/schemas && cp src/schemas/*.json dist/src/schemas/ && chmod +x bin/rachis-mcp.js",
 		"start:local": "node dist/src/stdio.js"
 	},
 	"dependencies": {
