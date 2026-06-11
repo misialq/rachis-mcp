@@ -24,16 +24,34 @@ merge_schemas = load_script("merge_schemas.py")
 
 
 class EnvFileSelectionTests(unittest.TestCase):
+    def test_discovers_legacy_qiime2_and_current_rachis_env_names(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env_dir = Path(tmpdir)
+            legacy = env_dir / "q2-test-qiime2-amplicon-2025.10.yml"
+            current = env_dir / "q2-test-rachis-qiime2-2026.4.yml"
+            legacy.touch()
+            current.touch()
+
+            candidates = standalone.discover_env_files(env_dir)
+
+            self.assertEqual(
+                [(candidate.path.name, candidate.ecosystem, candidate.distribution) for candidate in candidates],
+                [
+                    (legacy.name, "qiime2", "amplicon"),
+                    (current.name, "rachis", "qiime2"),
+                ],
+            )
+
     def test_selects_latest_env_file_by_default(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             env_dir = Path(tmpdir)
             (env_dir / "q2-test-qiime2-amplicon-0.9.0.yml").touch()
             (env_dir / "q2-test-qiime2-amplicon-2.0.0.yml").touch()
-            (env_dir / "q2-test-qiime2-amplicon-10.1.0.yml").touch()
+            (env_dir / "q2-test-rachis-qiime2-10.1.0.yml").touch()
 
             selected = standalone.select_env_file(env_dir, "2026.1")
 
-            self.assertEqual(selected.path.name, "q2-test-qiime2-amplicon-10.1.0.yml")
+            self.assertEqual(selected.path.name, "q2-test-rachis-qiime2-10.1.0.yml")
 
     def test_can_select_latest_version_less_than_or_equal_to_requested(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -49,13 +67,32 @@ class EnvFileSelectionTests(unittest.TestCase):
     def test_prefers_tiny_for_same_version(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             env_dir = Path(tmpdir)
-            (env_dir / "q2-test-qiime2-amplicon-2026.1.yml").touch()
-            (env_dir / "q2-test-qiime2-moshpit-2026.1.yml").touch()
-            (env_dir / "q2-test-qiime2-tiny-2026.1.yml").touch()
+            (env_dir / "q2-test-rachis-qiime2-2026.4.yml").touch()
+            (env_dir / "q2-test-rachis-moshpit-2026.4.yml").touch()
+            (env_dir / "q2-test-rachis-tiny-2026.4.yml").touch()
 
-            selected = standalone.select_env_file(env_dir, "2026.4")
+            selected = standalone.select_env_file(env_dir)
 
-            self.assertEqual(selected.path.name, "q2-test-qiime2-tiny-2026.1.yml")
+            self.assertEqual(selected.path.name, "q2-test-rachis-tiny-2026.4.yml")
+
+    def test_amplicon_and_qiime2_have_the_same_distribution_priority(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env_dir = Path(tmpdir)
+            (env_dir / "q2-test-qiime2-amplicon-2025.10.yml").touch()
+            (env_dir / "q2-test-qiime2-moshpit-2025.10.yml").touch()
+
+            legacy = standalone.select_env_file(env_dir)
+
+            self.assertEqual(legacy.path.name, "q2-test-qiime2-amplicon-2025.10.yml")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env_dir = Path(tmpdir)
+            (env_dir / "q2-test-rachis-qiime2-2026.4.yml").touch()
+            (env_dir / "q2-test-rachis-moshpit-2026.4.yml").touch()
+
+            current = standalone.select_env_file(env_dir)
+
+            self.assertEqual(current.path.name, "q2-test-rachis-qiime2-2026.4.yml")
 
     def test_ignores_non_matching_files(self):
         with tempfile.TemporaryDirectory() as tmpdir:

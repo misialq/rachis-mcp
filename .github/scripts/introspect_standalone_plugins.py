@@ -8,9 +8,16 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-DISTRIBUTION_PREFERENCE = ("tiny", "amplicon", "moshpit", "pathogenome")
+DISTRIBUTION_PRIORITY = {
+    "tiny": 0,
+    "amplicon": 1,
+    "qiime2": 1,
+    "moshpit": 2,
+    "pathogenome": 3,
+}
 ENV_FILE_RE = re.compile(
-    r"^(?P<prefix>.+)-qiime2-(?P<distribution>[A-Za-z0-9_-]+)-(?P<version>\d+(?:\.\d+)*)\.ya?ml$"
+    r"^(?P<prefix>.+)-(?P<ecosystem>qiime2|rachis)-"
+    r"(?P<distribution>[A-Za-z0-9_-]+)-(?P<version>\d+(?:\.\d+)*)\.ya?ml$"
 )
 
 
@@ -18,6 +25,7 @@ ENV_FILE_RE = re.compile(
 class EnvFileCandidate:
     path: Path
     version: tuple[int, ...]
+    ecosystem: str
     distribution: str
 
 
@@ -43,6 +51,7 @@ def discover_env_files(env_dir: Path) -> list[EnvFileCandidate]:
             EnvFileCandidate(
                 path=path,
                 version=parse_version(match.group("version")),
+                ecosystem=match.group("ecosystem").lower(),
                 distribution=match.group("distribution").lower(),
             )
         )
@@ -67,10 +76,10 @@ def select_env_file(
         return None
 
     def sort_key(candidate: EnvFileCandidate) -> tuple[tuple[int, ...], int, str]:
-        try:
-            distro_rank = DISTRIBUTION_PREFERENCE.index(candidate.distribution)
-        except ValueError:
-            distro_rank = len(DISTRIBUTION_PREFERENCE)
+        distro_rank = DISTRIBUTION_PRIORITY.get(
+            candidate.distribution,
+            len(DISTRIBUTION_PRIORITY),
+        )
         return (candidate.version, -distro_rank, candidate.path.name)
 
     return max(candidates, key=sort_key)
@@ -186,7 +195,10 @@ def introspect_plugin(
         return data, {
             "name": name,
             "status": "success",
-            "detail": f"`{env_candidate.path.name}` ({env_candidate.distribution}, {version})",
+            "detail": (
+                f"`{env_candidate.path.name}` "
+                f"({env_candidate.ecosystem}, {env_candidate.distribution}, {version})"
+            ),
         }
     finally:
         remove = run(["micromamba", "env", "remove", "-y", "-n", env_name])
