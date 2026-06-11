@@ -5,5 +5,26 @@
     "ref": "main",
     "env_dir": "environment-files",
     "env_selection": "latest"
+  },
+  {
+    "name": "subread",
+    "repo": "https://github.com/bokulich-lab/q2-subread",
+    "ref": "main",
+    "env_dir": "environment-files",
+    "env_selection": "latest"
+  },
+  {
+    "name": "hostile",
+    "repo": "https://github.com/bokulich-lab/q2-hostile",
+    "ref": "main",
+    "env_dir": "environment-files",
+    "env_selection": "latest"
+  },
+  {
+    "name": "humann3",
+    "repo": "https://github.com/bokulich-lab/q2-humann3",
+    "ref": "main",
+    "env_dir": "environment-files",
+    "env_selection": "latest"
   }
 ]
