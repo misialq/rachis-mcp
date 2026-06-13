@@ -61,10 +61,15 @@ def discover_env_files(env_dir: Path) -> list[EnvFileCandidate]:
 def select_env_file(
     env_dir: Path,
     requested_version: str | None = None,
-    selection: str = "latest",
+    selection: str = "exact_requested",
 ) -> EnvFileCandidate | None:
     candidates = discover_env_files(env_dir)
-    if selection == "latest_lte_requested":
+    if selection == "exact_requested":
+        if requested_version is None:
+            raise ValueError("requested_version is required for exact_requested env selection.")
+        requested = parse_version(requested_version)
+        candidates = [candidate for candidate in candidates if candidate.version == requested]
+    elif selection == "latest_lte_requested":
         if requested_version is None:
             raise ValueError("requested_version is required for latest_lte_requested env selection.")
         requested = parse_version(requested_version)
@@ -138,7 +143,7 @@ def introspect_plugin(
     repo = plugin.get("repo")
     ref = plugin.get("ref", "main")
     env_dir_name = plugin.get("env_dir", "environment-files")
-    env_selection = plugin.get("env_selection", "latest")
+    env_selection = plugin.get("env_selection", "exact_requested")
 
     if not name or not repo:
         return {}, {"name": name or "<unknown>", "status": "warning", "detail": "Missing name or repo"}
@@ -150,7 +155,9 @@ def introspect_plugin(
     env_candidate = select_env_file(checkout_dir / env_dir_name, requested_version, env_selection)
     if env_candidate is None:
         detail = "No env file found"
-        if env_selection == "latest_lte_requested":
+        if env_selection == "exact_requested":
+            detail = f"No env file found for exact release `{requested_version}`"
+        elif env_selection == "latest_lte_requested":
             detail = f"No env file found for version <= `{requested_version}`"
         return {}, {
             "name": name,
@@ -214,7 +221,11 @@ def main() -> int:
     parser.add_argument("--repo")
     parser.add_argument("--ref", default="main")
     parser.add_argument("--env-dir", default="environment-files")
-    parser.add_argument("--env-selection", default="latest", choices=["latest", "latest_lte_requested"])
+    parser.add_argument(
+        "--env-selection",
+        default="exact_requested",
+        choices=["exact_requested", "latest", "latest_lte_requested"],
+    )
     parser.add_argument("--combine-artifacts")
     parser.add_argument("--output", default="standalone.json")
     parser.add_argument("--summary", default="standalone-summary.md")

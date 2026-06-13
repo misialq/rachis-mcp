@@ -82,7 +82,7 @@ for name, plugin in plugins.items():
                     results.add(clean_name(str(t)))
 
                 recurse(qtype)
-                return list(results)
+                return sorted(results)
 
             inputs = {}
             for k, v in signature.inputs.items():
@@ -140,4 +140,4 @@ for name, plugin in plugins.items():
     
     data[name] = plugin_data
 
-print(json.dumps(data, default=str))
+print(json.dumps(data, default=str, sort_keys=True))

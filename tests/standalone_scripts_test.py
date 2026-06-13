@@ -42,14 +42,33 @@ class EnvFileSelectionTests(unittest.TestCase):
                 ],
             )
 
-    def test_selects_latest_env_file_by_default(self):
+    def test_selects_exact_requested_release_by_default(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env_dir = Path(tmpdir)
+            (env_dir / "q2-test-qiime2-amplicon-2026.1.yml").touch()
+            (env_dir / "q2-test-rachis-qiime2-2026.4.yml").touch()
+            (env_dir / "q2-test-rachis-qiime2-2026.10.yml").touch()
+
+            selected = standalone.select_env_file(env_dir, "2026.4")
+
+            self.assertEqual(selected.path.name, "q2-test-rachis-qiime2-2026.4.yml")
+
+    def test_exact_requested_returns_none_without_matching_release(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env_dir = Path(tmpdir)
+            (env_dir / "q2-test-qiime2-amplicon-2026.1.yml").touch()
+            (env_dir / "q2-test-rachis-qiime2-2026.10.yml").touch()
+
+            self.assertIsNone(standalone.select_env_file(env_dir, "2026.4"))
+
+    def test_latest_selection_remains_available_for_local_use(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             env_dir = Path(tmpdir)
             (env_dir / "q2-test-qiime2-amplicon-0.9.0.yml").touch()
             (env_dir / "q2-test-qiime2-amplicon-2.0.0.yml").touch()
             (env_dir / "q2-test-rachis-qiime2-10.1.0.yml").touch()
 
-            selected = standalone.select_env_file(env_dir, "2026.1")
+            selected = standalone.select_env_file(env_dir, selection="latest")
 
             self.assertEqual(selected.path.name, "q2-test-rachis-qiime2-10.1.0.yml")
 
@@ -71,7 +90,7 @@ class EnvFileSelectionTests(unittest.TestCase):
             (env_dir / "q2-test-rachis-moshpit-2026.4.yml").touch()
             (env_dir / "q2-test-rachis-tiny-2026.4.yml").touch()
 
-            selected = standalone.select_env_file(env_dir)
+            selected = standalone.select_env_file(env_dir, "2026.4")
 
             self.assertEqual(selected.path.name, "q2-test-rachis-tiny-2026.4.yml")
 
@@ -81,7 +100,7 @@ class EnvFileSelectionTests(unittest.TestCase):
             (env_dir / "q2-test-qiime2-amplicon-2025.10.yml").touch()
             (env_dir / "q2-test-qiime2-moshpit-2025.10.yml").touch()
 
-            legacy = standalone.select_env_file(env_dir)
+            legacy = standalone.select_env_file(env_dir, "2025.10")
 
             self.assertEqual(legacy.path.name, "q2-test-qiime2-amplicon-2025.10.yml")
 
@@ -90,7 +109,7 @@ class EnvFileSelectionTests(unittest.TestCase):
             (env_dir / "q2-test-rachis-qiime2-2026.4.yml").touch()
             (env_dir / "q2-test-rachis-moshpit-2026.4.yml").touch()
 
-            current = standalone.select_env_file(env_dir)
+            current = standalone.select_env_file(env_dir, "2026.4")
 
             self.assertEqual(current.path.name, "q2-test-rachis-qiime2-2026.4.yml")
 
@@ -101,7 +120,7 @@ class EnvFileSelectionTests(unittest.TestCase):
             (env_dir / "q2-test-dev.yml").touch()
             (env_dir / "q2-test-qiime2-tiny-2025.10.yaml").touch()
 
-            selected = standalone.select_env_file(env_dir, "2026.1")
+            selected = standalone.select_env_file(env_dir, "2025.10")
 
             self.assertEqual(selected.path.name, "q2-test-qiime2-tiny-2025.10.yaml")
 
@@ -140,6 +159,42 @@ class MergeSchemasTests(unittest.TestCase):
             self.assertEqual(list(schema["plugins"]["deseq2"]["actions"]), ["official_action"])
             self.assertIn("external", schema["plugins"])
             self.assertIn("ExternalType", schema["types"])
+
+    def test_equivalent_input_orders_produce_identical_schema_files(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            first_input = tmp / "first.json"
+            second_input = tmp / "second.json"
+            first_output = tmp / "first-schema.json"
+            second_output = tmp / "second-schema.json"
+
+            first_input.write_text(json.dumps({
+                "zeta": {
+                    "actions": {
+                        "last": {"outputs": {"z": {"type": ["Z"]}}},
+                        "first": {"outputs": {"a": {"type": ["A"]}}},
+                    },
+                    "types": {"ZType": "", "AType": ""},
+                },
+                "alpha": {"actions": {}, "types": {}},
+            }))
+            second_input.write_text(json.dumps({
+                "alpha": {"types": {}, "actions": {}},
+                "zeta": {
+                    "types": {"AType": "", "ZType": ""},
+                    "actions": {
+                        "first": {"outputs": {"a": {"type": ["A"]}}},
+                        "last": {"outputs": {"z": {"type": ["Z"]}}},
+                    },
+                },
+            }))
+
+            merge_schemas.merge_schemas({"test": str(first_input)}, str(first_output))
+            merge_schemas.merge_schemas({"test": str(second_input)}, str(second_output))
+
+            self.assertEqual(first_output.read_bytes(), second_output.read_bytes())
+            schema = json.loads(first_output.read_text())
+            self.assertEqual(schema["distributions"]["test"]["plugins"], ["alpha", "zeta"])
 
 
 class ArtifactCombineTests(unittest.TestCase):
@@ -197,8 +252,23 @@ class Field:
         return self._has_default
 
 
+class Type:
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return self.name
+
+
+class Union:
+    members = [Type("ZType"), Type("AType")]
+
+    def __str__(self):
+        return "ZType | AType"
+
+
 class Signature:
-    inputs = {"table": Field("FeatureTable[Frequency]")}
+    inputs = {"table": Field(Union())}
     parameters = {"threads": Field("Int", True)}
     outputs = {"result": Field("FeatureTable[Frequency]")}
 
@@ -237,7 +307,12 @@ class PluginManager:
             result = self.run_introspect(fake_root, "--only", "target")
 
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(set(json.loads(result.stdout)), {"target"})
+            data = json.loads(result.stdout)
+            self.assertEqual(set(data), {"target"})
+            self.assertEqual(
+                data["target"]["actions"]["run"]["inputs"]["table"]["type"],
+                ["AType", "ZType"],
+            )
 
     def test_only_exits_nonzero_when_plugin_is_missing(self):
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -3,28 +3,42 @@
     "name": "deseq2",
     "repo": "https://github.com/bokulich-lab/q2-deseq2",
     "ref": "main",
-    "env_dir": "environment-files",
-    "env_selection": "latest"
+    "env_dir": "environment-files"
   },
   {
-    "name": "subread",
-    "repo": "https://github.com/bokulich-lab/q2-subread",
+    "name": "ena-uploader",
+    "repo": "https://github.com/bokulich-lab/q2-ena-uploader",
     "ref": "main",
-    "env_dir": "environment-files",
-    "env_selection": "latest"
+    "env_dir": "environment-files"
+  },
+  {
+    "name": "gunc",
+    "repo": "https://github.com/bokulich-lab/q2-gunc",
+    "ref": "main",
+    "env_dir": "environment-files"
   },
   {
     "name": "hostile",
     "repo": "https://github.com/bokulich-lab/q2-hostile",
     "ref": "main",
-    "env_dir": "environment-files",
-    "env_selection": "latest"
+    "env_dir": "environment-files"
   },
   {
     "name": "humann3",
     "repo": "https://github.com/bokulich-lab/q2-humann3",
     "ref": "main",
-    "env_dir": "environment-files",
-    "env_selection": "latest"
+    "env_dir": "environment-files"
+  },
+  {
+    "name": "skani",
+    "repo": "https://github.com/bokulich-lab/q2-skani",
+    "ref": "main",
+    "env_dir": "environment-files"
+  },
+  {
+    "name": "subread",
+    "repo": "https://github.com/bokulich-lab/q2-subread",
+    "ref": "main",
+    "env_dir": "environment-files"
   }
 ]

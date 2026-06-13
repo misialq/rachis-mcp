@@ -68,7 +68,7 @@ def merge_schemas(distribution_files, output_file):
                              final_schema["types"].update(plugin_content['types'])
 
                 # record plugins for this distribution after duplicate filtering
-                final_schema["distributions"][dist_name] = {"plugins": dist_plugins}
+                final_schema["distributions"][dist_name] = {"plugins": sorted(dist_plugins)}
                         
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON from {filepath}: {e}", file=sys.stderr)
@@ -82,7 +82,7 @@ def merge_schemas(distribution_files, output_file):
             os.makedirs(output_dir, exist_ok=True)
         with open(output_file, 'w') as f:
             # Using no indent for smaller file size, consistent with compact JSON
-            json.dump(final_schema, f, separators=(',', ':'))
+            json.dump(final_schema, f, separators=(',', ':'), sort_keys=True)
         print(f"Successfully wrote merged schema to {output_file}", file=sys.stderr)
     except IOError as e:
         print(f"Error writing to {output_file}: {e}", file=sys.stderr)

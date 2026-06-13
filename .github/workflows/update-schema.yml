@@ -34,7 +34,6 @@ jobs:
                               'repo': plugin['repo'],
                               'ref': plugin.get('ref', 'main'),
                               'env_dir': plugin.get('env_dir', 'environment-files'),
-                              'env_selection': plugin.get('env_selection', 'latest'),
                           })
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
               out.write(f"has_plugins={'true' if plugins else 'false'}\n")
@@ -68,7 +67,7 @@ jobs:
             --repo '${{ matrix.repo }}' \
             --ref '${{ matrix.ref }}' \
             --env-dir '${{ matrix.env_dir }}' \
-            --env-selection '${{ matrix.env_selection }}' \
+            --env-selection exact_requested \
             --output 'standalone-${{ matrix.name }}.json' \
             --summary 'standalone-${{ matrix.name }}.md'
 
@@ -180,7 +179,7 @@ jobs:
           data['rachis_version'] = '${{ inputs.version }}'
           import os; os.makedirs('src/schemas', exist_ok=True)
           with open('src/schemas/rachis-${{ inputs.version }}.json', 'w') as f:
-              json.dump(data, f, indent=4)
+              json.dump(data, f, indent=4, sort_keys=True)
           EOF
 
       - name: Regenerate Schema Registry
