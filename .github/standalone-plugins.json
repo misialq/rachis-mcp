@@ -1,5 +1,11 @@
 [
   {
+    "name": "cleanifier",
+    "repo": "https://github.com/bokulich-lab/q2-cleanifier",
+    "ref": "main",
+    "env_dir": "environment-files"
+  },
+  {
     "name": "deseq2",
     "repo": "https://github.com/bokulich-lab/q2-deseq2",
     "ref": "main",
