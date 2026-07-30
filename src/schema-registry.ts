@@ -5,15 +5,17 @@ import schema_0 from './schemas/rachis-2025.4.json';
 import schema_1 from './schemas/rachis-2025.10.json';
 import schema_2 from './schemas/rachis-2026.1.json';
 import schema_3 from './schemas/rachis-2026.4.json';
+import schema_4 from './schemas/rachis-2026.7.json';
 
 const REGISTRY: Record<string, Schema> = {
     '2025.4': schema_0 as unknown as Schema,
     '2025.10': schema_1 as unknown as Schema,
     '2026.1': schema_2 as unknown as Schema,
     '2026.4': schema_3 as unknown as Schema,
+    '2026.7': schema_4 as unknown as Schema,
 };
 
-export const LATEST_VERSION = '2026.4';
+export const LATEST_VERSION = '2026.7';
 export const AVAILABLE_VERSIONS: string[] = Object.keys(REGISTRY);
 
 export function getSchema(version?: string): { schema: Schema; version: string } {
