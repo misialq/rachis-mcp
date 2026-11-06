@@ -6,6 +6,7 @@ import schema_1 from './schemas/rachis-2025.10.json';
 import schema_2 from './schemas/rachis-2026.1.json';
 import schema_3 from './schemas/rachis-2026.4.json';
 import schema_4 from './schemas/rachis-2026.7.json';
+import schema_5 from './schemas/rachis-2026.10.json';
 
 const REGISTRY: Record<string, Schema> = {
     '2025.4': schema_0 as unknown as Schema,
@@ -13,9 +14,10 @@ const REGISTRY: Record<string, Schema> = {
     '2026.1': schema_2 as unknown as Schema,
     '2026.4': schema_3 as unknown as Schema,
     '2026.7': schema_4 as unknown as Schema,
+    '2026.10': schema_5 as unknown as Schema,
 };
 
-export const LATEST_VERSION = '2026.7';
+export const LATEST_VERSION = '2026.10';
 export const AVAILABLE_VERSIONS: string[] = Object.keys(REGISTRY);
 
 export function getSchema(version?: string): { schema: Schema; version: string } {
